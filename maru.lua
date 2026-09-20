@@ -1,674 +1,823 @@
---==================================================
--- MARU STYLE HUB
--- Key + Neon UI + Modules
---==================================================
+--========================================================
+-- MARU HUB - MOBILE UI
+-- Key: MARU-2026-TEST
+--========================================================
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
-local player = Players.LocalPlayer
-local pg = player:WaitForChild("PlayerGui")
-
-local old = pg:FindFirstChild("MaruHub")
-if old then old:Destroy() end
-
---==================================================
--- SETTINGS
---==================================================
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local KEY = "MARU-2026-TEST"
 
-local Fullbright = false
-local FixLag = false
+--========================================================
+-- CLEAN OLD UI
+--========================================================
 
-local oldLighting = {
-	Brightness = Lighting.Brightness,
-	ClockTime = Lighting.ClockTime,
-	FogEnd = Lighting.FogEnd,
-	GlobalShadows = Lighting.GlobalShadows,
-	Ambient = Lighting.Ambient,
-	OutdoorAmbient = Lighting.OutdoorAmbient
+local old = PlayerGui:FindFirstChild("MaruHub")
+if old then
+    old:Destroy()
+end
+
+--========================================================
+-- COLORS
+--========================================================
+
+local C = {
+    Background = Color3.fromRGB(10, 13, 20),
+    Sidebar = Color3.fromRGB(14, 18, 28),
+    Card = Color3.fromRGB(19, 24, 36),
+    Card2 = Color3.fromRGB(24, 30, 44),
+    Accent = Color3.fromRGB(40, 150, 255),
+    Accent2 = Color3.fromRGB(70, 190, 255),
+    Text = Color3.fromRGB(245, 248, 255),
+    SubText = Color3.fromRGB(145, 155, 175),
+    Off = Color3.fromRGB(55, 63, 78),
+    Green = Color3.fromRGB(70, 220, 130),
+    Red = Color3.fromRGB(255, 80, 90)
 }
 
---==================================================
+--========================================================
+-- HELPERS
+--========================================================
+
+local function Corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = obj
+    return c
+end
+
+local function Stroke(obj, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thickness or 1
+    s.Transparency = 0.25
+    s.Parent = obj
+    return s
+end
+
+local function NewLabel(parent, text, size, color, font)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextSize = size or 14
+    l.TextColor3 = color or C.Text
+    l.Font = font or Enum.Font.Gotham
+    l.Parent = parent
+    return l
+end
+
+local function Tween(obj, info, props)
+    TweenService:Create(obj, info, props):Play()
+end
+
+--========================================================
 -- GUI
---==================================================
+--========================================================
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "MaruHub"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = pg
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "MaruHub"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
 
---==================================================
--- COLORS
---==================================================
-
-local BG = Color3.fromRGB(8,12,22)
-local PANEL = Color3.fromRGB(12,20,35)
-local PANEL2 = Color3.fromRGB(17,29,48)
-local BLUE = Color3.fromRGB(0,150,255)
-local CYAN = Color3.fromRGB(40,210,255)
-local WHITE = Color3.fromRGB(245,250,255)
-local GRAY = Color3.fromRGB(145,165,190)
-
---==================================================
--- UTILS
---==================================================
-
-local function corner(obj,r)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0,r)
-	c.Parent = obj
-	return c
-end
-
-local function stroke(obj,color,thickness)
-	local s = Instance.new("UIStroke")
-	s.Color = color
-	s.Thickness = thickness or 1
-	s.Parent = obj
-	return s
-end
-
-local function label(parent,text,size,font)
-	local x = Instance.new("TextLabel")
-	x.BackgroundTransparency = 1
-	x.Text = text
-	x.TextColor3 = WHITE
-	x.TextSize = size or 14
-	x.Font = font or Enum.Font.Gotham
-	x.Parent = parent
-	return x
-end
-
---==================================================
+--========================================================
 -- KEY WINDOW
---==================================================
+--========================================================
 
-local keyFrame = Instance.new("Frame")
-keyFrame.Size = UDim2.fromOffset(430,270)
-keyFrame.Position = UDim2.fromScale(.5,.5)
-keyFrame.AnchorPoint = Vector2.new(.5,.5)
-keyFrame.BackgroundColor3 = BG
-keyFrame.BorderSizePixel = 0
-keyFrame.Parent = gui
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.fromOffset(380, 245)
+KeyFrame.Position = UDim2.fromScale(0.5, 0.5)
+KeyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+KeyFrame.BackgroundColor3 = C.Background
+KeyFrame.BorderSizePixel = 0
+KeyFrame.Parent = Gui
 
-corner(keyFrame,16)
-stroke(keyFrame,BLUE,1)
+Corner(KeyFrame, 16)
+Stroke(KeyFrame, C.Accent, 1)
 
-local kt = label(keyFrame,"MARU STYLE HUB",25,Enum.Font.GothamBold)
-kt.Position = UDim2.fromOffset(22,18)
-kt.Size = UDim2.new(1,-44,0,40)
-kt.TextXAlignment = Enum.TextXAlignment.Left
-
-local ks = label(
-	keyFrame,
-	"Enter your access key to continue",
-	13
+local KeyTitle = NewLabel(
+    KeyFrame,
+    "MARU HUB",
+    25,
+    C.Text,
+    Enum.Font.GothamBold
 )
-ks.Position = UDim2.fromOffset(22,58)
-ks.Size = UDim2.new(1,-44,0,25)
-ks.TextColor3 = GRAY
-ks.TextXAlignment = Enum.TextXAlignment.Left
+KeyTitle.Position = UDim2.fromOffset(22, 18)
+KeyTitle.Size = UDim2.new(1, -44, 0, 35)
+KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
 
-local keyBox = Instance.new("TextBox")
-keyBox.Size = UDim2.new(1,-44,0,48)
-keyBox.Position = UDim2.fromOffset(22,92)
-keyBox.BackgroundColor3 = PANEL2
-keyBox.BorderSizePixel = 0
-keyBox.PlaceholderText = "Enter key..."
-keyBox.PlaceholderColor3 = GRAY
-keyBox.TextColor3 = WHITE
-keyBox.TextSize = 14
-keyBox.Font = Enum.Font.Gotham
-keyBox.Parent = keyFrame
-corner(keyBox,10)
+local KeySub = NewLabel(
+    KeyFrame,
+    "Enter your access key",
+    13,
+    C.SubText
+)
+KeySub.Position = UDim2.fromOffset(22, 52)
+KeySub.Size = UDim2.new(1, -44, 0, 25)
+KeySub.TextXAlignment = Enum.TextXAlignment.Left
 
-local check = Instance.new("TextButton")
-check.Size = UDim2.new(1,-44,0,45)
-check.Position = UDim2.fromOffset(22,148)
-check.BackgroundColor3 = BLUE
-check.BorderSizePixel = 0
-check.Text = "CHECK KEY"
-check.TextColor3 = WHITE
-check.TextSize = 14
-check.Font = Enum.Font.GothamBold
-check.Parent = keyFrame
-corner(check,10)
+local KeyBox = Instance.new("TextBox")
+KeyBox.Size = UDim2.new(1, -44, 0, 45)
+KeyBox.Position = UDim2.fromOffset(22, 88)
+KeyBox.BackgroundColor3 = C.Card
+KeyBox.BorderSizePixel = 0
+KeyBox.PlaceholderText = "Enter key..."
+KeyBox.PlaceholderColor3 = C.SubText
+KeyBox.TextColor3 = C.Text
+KeyBox.TextSize = 14
+KeyBox.Font = Enum.Font.Gotham
+KeyBox.ClearTextOnFocus = false
+KeyBox.Parent = KeyFrame
 
-local status = label(keyFrame,"Status: Waiting...",13)
-status.Position = UDim2.fromOffset(22,205)
-status.Size = UDim2.new(1,-44,0,30)
-status.TextColor3 = GRAY
-status.TextXAlignment = Enum.TextXAlignment.Left
+Corner(KeyBox, 9)
 
---==================================================
--- LOGO BUTTON
---==================================================
+local CheckButton = Instance.new("TextButton")
+CheckButton.Size = UDim2.new(1, -44, 0, 42)
+CheckButton.Position = UDim2.fromOffset(22, 143)
+CheckButton.BackgroundColor3 = C.Accent
+CheckButton.BorderSizePixel = 0
+CheckButton.Text = "CHECK KEY"
+CheckButton.TextColor3 = C.Text
+CheckButton.TextSize = 14
+CheckButton.Font = Enum.Font.GothamBold
+CheckButton.Parent = KeyFrame
 
-local logoButton = Instance.new("TextButton")
-logoButton.Size = UDim2.fromOffset(76,76)
-logoButton.Position = UDim2.fromOffset(25,180)
-logoButton.BackgroundColor3 = BG
-logoButton.Text = "M"
-logoButton.TextColor3 = CYAN
-logoButton.TextSize = 36
-logoButton.Font = Enum.Font.GothamBlack
-logoButton.Visible = false
-logoButton.Parent = gui
+Corner(CheckButton, 9)
 
-corner(logoButton,100)
-stroke(logoButton,CYAN,3)
+local KeyStatus = NewLabel(
+    KeyFrame,
+    "Status: Waiting...",
+    12,
+    C.SubText
+)
+KeyStatus.Position = UDim2.fromOffset(22, 194)
+KeyStatus.Size = UDim2.new(1, -44, 0, 25)
+KeyStatus.TextXAlignment = Enum.TextXAlignment.Left
 
--- glow
-local glow = Instance.new("ImageLabel")
-glow.Size = UDim2.new(1,30,1,30)
-glow.Position = UDim2.fromOffset(-15,-15)
-glow.BackgroundTransparency = 1
-glow.Image = "rbxassetid://5028857084"
-glow.ImageColor3 = CYAN
-glow.ImageTransparency = .65
-glow.ZIndex = 0
-glow.Parent = logoButton
+--========================================================
+-- OPEN BUTTON
+--========================================================
 
-logoButton.ZIndex = 2
+local OpenButton = Instance.new("TextButton")
+OpenButton.Size = UDim2.fromOffset(52, 52)
+OpenButton.Position = UDim2.fromOffset(18, 180)
+OpenButton.BackgroundColor3 = C.Background
+OpenButton.BorderSizePixel = 0
+OpenButton.Text = "M"
+OpenButton.TextColor3 = C.Accent2
+OpenButton.TextSize = 22
+OpenButton.Font = Enum.Font.GothamBlack
+OpenButton.Visible = false
+OpenButton.Parent = Gui
 
---==================================================
+Corner(OpenButton, 100)
+Stroke(OpenButton, C.Accent, 2)
+
+--========================================================
 -- MAIN HUB
---==================================================
+--========================================================
 
-local hub = Instance.new("Frame")
-hub.Size = UDim2.fromOffset(760,470)
-hub.Position = UDim2.fromScale(.5,.5)
-hub.AnchorPoint = Vector2.new(.5,.5)
-hub.BackgroundColor3 = BG
-hub.BorderSizePixel = 0
-hub.Visible = false
-hub.Parent = gui
+local Hub = Instance.new("Frame")
+Hub.Size = UDim2.fromOffset(650, 410)
+Hub.Position = UDim2.fromScale(0.5, 0.5)
+Hub.AnchorPoint = Vector2.new(0.5, 0.5)
+Hub.BackgroundColor3 = C.Background
+Hub.BorderSizePixel = 0
+Hub.Visible = false
+Hub.Parent = Gui
 
-corner(hub,18)
-stroke(hub,BLUE,2)
+Corner(Hub, 16)
+Stroke(Hub, C.Accent, 1)
 
---==================================================
+-- Responsive mobile size
+local function ResizeHub()
+    local viewport = workspace.CurrentCamera.ViewportSize
+
+    if viewport.X < 600 then
+        Hub.Size = UDim2.new(0.92, 0, 0.70, 0)
+    else
+        Hub.Size = UDim2.fromOffset(650, 410)
+    end
+end
+
+ResizeHub()
+
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(ResizeHub)
+
+--========================================================
 -- HEADER
---==================================================
+--========================================================
 
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1,0,0,72)
-header.BackgroundTransparency = 1
-header.Parent = hub
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 58)
+Header.BackgroundTransparency = 1
+Header.Parent = Hub
 
-local logoText = label(header,"M",35,Enum.Font.GothamBlack)
-logoText.Position = UDim2.fromOffset(22,12)
-logoText.Size = UDim2.fromOffset(50,48)
-logoText.TextColor3 = CYAN
+local Logo = NewLabel(
+    Header,
+    "M",
+    27,
+    C.Accent2,
+    Enum.Font.GothamBlack
+)
+Logo.Position = UDim2.fromOffset(18, 8)
+Logo.Size = UDim2.fromOffset(40, 40)
 
-local title = label(header,"MARU STYLE HUB",25,Enum.Font.GothamBold)
-title.Position = UDim2.fromOffset(75,12)
-title.Size = UDim2.fromOffset(300,35)
-title.TextXAlignment = Enum.TextXAlignment.Left
+local HubTitle = NewLabel(
+    Header,
+    "MARU HUB",
+    20,
+    C.Text,
+    Enum.Font.GothamBold
+)
+HubTitle.Position = UDim2.fromOffset(58, 7)
+HubTitle.Size = UDim2.fromOffset(250, 28)
+HubTitle.TextXAlignment = Enum.TextXAlignment.Left
 
-local sub = label(header,"Better Experience - More Fun",12)
-sub.Position = UDim2.fromOffset(77,43)
-sub.Size = UDim2.fromOffset(300,20)
-sub.TextColor3 = GRAY
-sub.TextXAlignment = Enum.TextXAlignment.Left
+local HubSub = NewLabel(
+    Header,
+    "Mobile Edition",
+    11,
+    C.SubText
+)
+HubSub.Position = UDim2.fromOffset(60, 31)
+HubSub.Size = UDim2.fromOffset(200, 18)
+HubSub.TextXAlignment = Enum.TextXAlignment.Left
 
-local close = Instance.new("TextButton")
-close.Size = UDim2.fromOffset(42,42)
-close.Position = UDim2.new(1,-58,0,15)
-close.BackgroundColor3 = PANEL2
-close.Text = "×"
-close.TextColor3 = WHITE
-close.TextSize = 25
-close.Font = Enum.Font.GothamBold
-close.Parent = header
-corner(close,10)
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(38, 38)
+Close.Position = UDim2.new(1, -50, 0, 10)
+Close.BackgroundColor3 = C.Card2
+Close.BorderSizePixel = 0
+Close.Text = "×"
+Close.TextColor3 = C.Text
+Close.TextSize = 23
+Close.Font = Enum.Font.GothamBold
+Close.Parent = Header
 
---==================================================
+Corner(Close, 9)
+
+--========================================================
 -- SIDEBAR
---==================================================
+--========================================================
 
-local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0,155,1,-90)
-sidebar.Position = UDim2.fromOffset(15,78)
-sidebar.BackgroundColor3 = PANEL
-sidebar.BorderSizePixel = 0
-sidebar.Parent = hub
-corner(sidebar,14)
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 135, 1, -73)
+Sidebar.Position = UDim2.fromOffset(12, 63)
+Sidebar.BackgroundColor3 = C.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Hub
 
---==================================================
+Corner(Sidebar, 12)
+
+--========================================================
 -- CONTENT
---==================================================
+--========================================================
 
-local content = Instance.new("Frame")
-content.Size = UDim2.new(1,-190,1,-90)
-content.Position = UDim2.fromOffset(175,78)
-content.BackgroundTransparency = 1
-content.Parent = hub
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -160, 1, -73)
+Content.Position = UDim2.fromOffset(148, 63)
+Content.BackgroundTransparency = 1
+Content.Parent = Hub
 
-local pages = {}
+local Pages = {}
 
-local function newPage(name)
+local function CreatePage(name)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name
+    page.Size = UDim2.fromScale(1, 1)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 2
+    page.Visible = false
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.Parent = Content
 
-	local page = Instance.new("ScrollingFrame")
-	page.Name = name
-	page.Size = UDim2.fromScale(1,1)
-	page.BackgroundTransparency = 1
-	page.BorderSizePixel = 0
-	page.ScrollBarThickness = 3
-	page.CanvasSize = UDim2.new(0,0,0,0)
-	page.Visible = false
-	page.Parent = content
-
-	pages[name] = page
-
-	return page
+    Pages[name] = page
+    return page
 end
 
-local mainPage = newPage("Main")
-local playerPage = newPage("Player")
-local settingsPage = newPage("Settings")
+local MainPage = CreatePage("Main")
+local FarmPage = CreatePage("Farm")
+local PlayerPage = CreatePage("Player")
+local VisualPage = CreatePage("Visual")
+local SettingsPage = CreatePage("Settings")
 
---==================================================
--- SIDEBAR BUTTON
---==================================================
+--========================================================
+-- PAGE TITLE
+--========================================================
 
-local currentPage
+local function PageTitle(page, title, subtitle)
+    local t = NewLabel(
+        page,
+        title,
+        22,
+        C.Text,
+        Enum.Font.GothamBold
+    )
+    t.Position = UDim2.fromOffset(8, 5)
+    t.Size = UDim2.new(1, -16, 0, 30)
+    t.TextXAlignment = Enum.TextXAlignment.Left
 
-local function tab(name,text,y,page)
-
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1,-20,0,48)
-	b.Position = UDim2.fromOffset(10,y)
-	b.BackgroundColor3 = PANEL
-	b.BorderSizePixel = 0
-	b.Text = text
-	b.TextColor3 = GRAY
-	b.TextSize = 14
-	b.Font = Enum.Font.GothamMedium
-	b.Parent = sidebar
-	corner(b,10)
-
-	b.MouseButton1Click:Connect(function()
-
-		for _,p in pairs(pages) do
-			p.Visible = false
-		end
-
-		page.Visible = true
-		currentPage = page
-
-		for _,v in ipairs(sidebar:GetChildren()) do
-			if v:IsA("TextButton") then
-				v.BackgroundColor3 = PANEL
-				v.TextColor3 = GRAY
-			end
-		end
-
-		b.BackgroundColor3 = Color3.fromRGB(0,80,160)
-		b.TextColor3 = WHITE
-
-	end)
-
-	return b
+    local s = NewLabel(
+        page,
+        subtitle,
+        12,
+        C.SubText
+    )
+    s.Position = UDim2.fromOffset(8, 34)
+    s.Size = UDim2.new(1, -16, 0, 24)
+    s.TextXAlignment = Enum.TextXAlignment.Left
 end
 
-tab("Main","⌂   Main",15,mainPage)
-tab("Player","♙   Player",70,playerPage)
-tab("Settings","⚙   Settings",125,settingsPage)
-
---==================================================
+--========================================================
 -- CARD
---==================================================
+--========================================================
 
-local function card(parent,titleText,y,height)
+local function Card(parent, y, height)
+    local c = Instance.new("Frame")
+    c.Size = UDim2.new(1, -12, 0, height)
+    c.Position = UDim2.fromOffset(6, y)
+    c.BackgroundColor3 = C.Card
+    c.BorderSizePixel = 0
+    c.Parent = parent
 
-	local c = Instance.new("Frame")
-	c.Size = UDim2.new(1,-10,0,height)
-	c.Position = UDim2.fromOffset(5,y)
-	c.BackgroundColor3 = PANEL
-	c.BorderSizePixel = 0
-	c.Parent = parent
-	corner(c,12)
-	stroke(c,Color3.fromRGB(25,65,100),1)
-
-	local t = label(c,titleText,17,Enum.Font.GothamBold)
-	t.Position = UDim2.fromOffset(18,12)
-	t.Size = UDim2.new(1,-36,0,30)
-	t.TextXAlignment = Enum.TextXAlignment.Left
-
-	return c
+    Corner(c, 11)
+    return c
 end
 
---==================================================
--- MAIN PAGE
---==================================================
-
-local welcome = label(mainPage,"Welcome to Maru Hub!",22,Enum.Font.GothamBold)
-welcome.Position = UDim2.fromOffset(10,5)
-welcome.Size = UDim2.new(1,-20,0,35)
-welcome.TextXAlignment = Enum.TextXAlignment.Left
-
-local info = label(
-	mainPage,
-	"Key verified successfully.",
-	13
-)
-info.Position = UDim2.fromOffset(10,40)
-info.Size = UDim2.new(1,-20,0,25)
-info.TextColor3 = GRAY
-info.TextXAlignment = Enum.TextXAlignment.Left
-
-local quick = card(mainPage,"⚡  Quick Actions",75,150)
-
-local function actionButton(parent,text,x,y)
-
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(.48,0,0,48)
-	b.Position = UDim2.new(x,0,0,y)
-	b.BackgroundColor3 = PANEL2
-	b.BorderSizePixel = 0
-	b.Text = text
-	b.TextColor3 = WHITE
-	b.TextSize = 13
-	b.Font = Enum.Font.GothamMedium
-	b.Parent = parent
-	corner(b,9)
-
-	b.MouseButton1Click:Connect(function()
-		print("Action:",text)
-	end)
-
-	return b
-end
-
-actionButton(quick,"↻   Rejoin",.01,50)
-actionButton(quick,"◉   Refresh",.51,50)
-
-local statusCard = card(mainPage,"✓  Status",235,110)
-
-local stat = label(statusCard,"●  Key Verified",14)
-stat.Position = UDim2.fromOffset(18,50)
-stat.Size = UDim2.new(1,-36,0,30)
-stat.TextColor3 = Color3.fromRGB(70,255,150)
-stat.TextXAlignment = Enum.TextXAlignment.Left
-
---==================================================
--- PLAYER PAGE
---==================================================
-
-local playerTitle = label(playerPage,"Player",22,Enum.Font.GothamBold)
-playerTitle.Position = UDim2.fromOffset(10,5)
-playerTitle.Size = UDim2.new(1,-20,0,35)
-playerTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local playerCard = card(playerPage,"Player Information",55,130)
-
-local playerName = label(
-	playerCard,
-	"Username: "..player.Name,
-	14
-)
-playerName.Position = UDim2.fromOffset(18,55)
-playerName.Size = UDim2.new(1,-36,0,25)
-playerName.TextColor3 = GRAY
-playerName.TextXAlignment = Enum.TextXAlignment.Left
-
---==================================================
+--========================================================
 -- TOGGLE
---==================================================
+--========================================================
 
-local function toggle(parent,text,y,callback)
+local function Toggle(parent, title, description, y, callback)
 
-	local row = Instance.new("Frame")
-	row.Size = UDim2.new(1,-30,0,48)
-	row.Position = UDim2.fromOffset(15,y)
-	row.BackgroundColor3 = PANEL2
-	row.BorderSizePixel = 0
-	row.Parent = parent
-	corner(row,9)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -24, 0, 55)
+    row.Position = UDim2.fromOffset(12, y)
+    row.BackgroundColor3 = C.Card2
+    row.BorderSizePixel = 0
+    row.Parent = parent
 
-	local t = label(row,text,14)
-	t.Position = UDim2.fromOffset(15,0)
-	t.Size = UDim2.new(1,-80,1,0)
-	t.TextXAlignment = Enum.TextXAlignment.Left
+    Corner(row, 9)
 
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(48,25)
-	button.Position = UDim2.new(1,-62,.5,-12)
-	button.BackgroundColor3 = Color3.fromRGB(55,70,95)
-	button.Text = ""
-	button.Parent = row
-	corner(button,20)
+    local t = NewLabel(
+        row,
+        title,
+        13,
+        C.Text,
+        Enum.Font.GothamMedium
+    )
+    t.Position = UDim2.fromOffset(13, 5)
+    t.Size = UDim2.new(1, -75, 0, 22)
+    t.TextXAlignment = Enum.TextXAlignment.Left
 
-	local dot = Instance.new("Frame")
-	dot.Size = UDim2.fromOffset(19,19)
-	dot.Position = UDim2.fromOffset(3,3)
-	dot.BackgroundColor3 = WHITE
-	dot.Parent = button
-	corner(dot,20)
+    local d = NewLabel(
+        row,
+        description,
+        10,
+        C.SubText
+    )
+    d.Position = UDim2.fromOffset(13, 27)
+    d.Size = UDim2.new(1, -75, 0, 18)
+    d.TextXAlignment = Enum.TextXAlignment.Left
 
-	local enabled = false
+    local switch = Instance.new("TextButton")
+    switch.Size = UDim2.fromOffset(42, 22)
+    switch.Position = UDim2.new(1, -55, 0.5, -11)
+    switch.BackgroundColor3 = C.Off
+    switch.Text = ""
+    switch.Parent = row
 
-	button.MouseButton1Click:Connect(function()
+    Corner(switch, 20)
 
-		enabled = not enabled
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(16, 16)
+    dot.Position = UDim2.fromOffset(3, 3)
+    dot.BackgroundColor3 = C.Text
+    dot.Parent = switch
 
-		if enabled then
-			button.BackgroundColor3 = BLUE
-			dot.Position = UDim2.fromOffset(26,3)
-		else
-			button.BackgroundColor3 = Color3.fromRGB(55,70,95)
-			dot.Position = UDim2.fromOffset(3,3)
-		end
+    Corner(dot, 20)
 
-		callback(enabled)
+    local enabled = false
 
-	end)
+    switch.MouseButton1Click:Connect(function()
+        enabled = not enabled
 
-	return row
+        if enabled then
+            Tween(switch, TweenInfo.new(.15), {
+                BackgroundColor3 = C.Accent
+            })
+
+            Tween(dot, TweenInfo.new(.15), {
+                Position = UDim2.fromOffset(23, 3)
+            })
+        else
+            Tween(switch, TweenInfo.new(.15), {
+                BackgroundColor3 = C.Off
+            })
+
+            Tween(dot, TweenInfo.new(.15), {
+                Position = UDim2.fromOffset(3, 3)
+            })
+        end
+
+        callback(enabled)
+    end)
+
+    return row
 end
 
---==================================================
--- SETTINGS PAGE
---==================================================
+--========================================================
+-- TABS
+--========================================================
 
-local settingsTitle = label(settingsPage,"Settings",22,Enum.Font.GothamBold)
-settingsTitle.Position = UDim2.fromOffset(10,5)
-settingsTitle.Size = UDim2.new(1,-20,0,35)
-settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+local TabButtons = {}
 
-local visual = card(settingsPage,"☼  Visual",55,125)
+local function Tab(name, text, y, page)
 
-toggle(
-	visual,
-	"Fullbright",
-	48,
-	function(enabled)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -16, 0, 43)
+    b.Position = UDim2.fromOffset(8, y)
+    b.BackgroundColor3 = C.Sidebar
+    b.BorderSizePixel = 0
+    b.Text = text
+    b.TextColor3 = C.SubText
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamMedium
+    b.Parent = Sidebar
 
-		Fullbright = enabled
+    Corner(b, 8)
 
-		if enabled then
+    TabButtons[name] = b
 
-			Lighting.Brightness = 2
-			Lighting.ClockTime = 14
-			Lighting.FogEnd = 100000
-			Lighting.GlobalShadows = false
-			Lighting.Ambient = Color3.new(1,1,1)
-			Lighting.OutdoorAmbient = Color3.new(1,1,1)
+    b.MouseButton1Click:Connect(function()
 
-		else
+        for _, p in pairs(Pages) do
+            p.Visible = false
+        end
 
-			Lighting.Brightness = oldLighting.Brightness
-			Lighting.ClockTime = oldLighting.ClockTime
-			Lighting.FogEnd = oldLighting.FogEnd
-			Lighting.GlobalShadows = oldLighting.GlobalShadows
-			Lighting.Ambient = oldLighting.Ambient
-			Lighting.OutdoorAmbient = oldLighting.OutdoorAmbient
+        page.Visible = true
 
-		end
-	end
+        for _, button in pairs(TabButtons) do
+            button.BackgroundColor3 = C.Sidebar
+            button.TextColor3 = C.SubText
+        end
+
+        b.BackgroundColor3 = Color3.fromRGB(0, 75, 145)
+        b.TextColor3 = C.Text
+    end)
+
+    return b
+end
+
+Tab("Main", "⌂  Main", 10, MainPage)
+Tab("Farm", "⚡  Farm", 58, FarmPage)
+Tab("Player", "♙  Player", 106, PlayerPage)
+Tab("Visual", "◉  Visual", 154, VisualPage)
+Tab("Settings", "⚙  Settings", 202, SettingsPage)
+
+--========================================================
+-- MAIN
+--========================================================
+
+PageTitle(
+    MainPage,
+    "Main",
+    "Welcome to Maru Hub"
 )
 
-local performance = card(settingsPage,"⚡  Performance",195,125)
+local MainCard = Card(MainPage, 68, 120)
 
-toggle(
-	performance,
-	"Fix Lag / Low Graphics",
-	48,
-	function(enabled)
+local Welcome = NewLabel(
+    MainCard,
+    "MARU HUB READY",
+    17,
+    C.Text,
+    Enum.Font.GothamBold
+)
+Welcome.Position = UDim2.fromOffset(16, 14)
+Welcome.Size = UDim2.new(1, -32, 0, 25)
+Welcome.TextXAlignment = Enum.TextXAlignment.Left
 
-		FixLag = enabled
+local Status = NewLabel(
+    MainCard,
+    "●  Key verified successfully",
+    12,
+    C.Green
+)
+Status.Position = UDim2.fromOffset(16, 48)
+Status.Size = UDim2.new(1, -32, 0, 25)
+Status.TextXAlignment = Enum.TextXAlignment.Left
 
-		if enabled then
+local Info = NewLabel(
+    MainCard,
+    "Use the sidebar to access modules.",
+    11,
+    C.SubText
+)
+Info.Position = UDim2.fromOffset(16, 76)
+Info.Size = UDim2.new(1, -32, 0, 25)
+Info.TextXAlignment = Enum.TextXAlignment.Left
 
-			-- Giảm chất lượng hiệu ứng client
-			for _,obj in ipairs(workspace:GetDescendants()) do
+--========================================================
+-- FARM
+--========================================================
 
-				if obj:IsA("ParticleEmitter")
-					or obj:IsA("Trail")
-					or obj:IsA("Beam") then
-
-					obj.Enabled = false
-				end
-
-			end
-
-			settings().Rendering.QualityLevel =
-				Enum.QualityLevel.Level01
-
-		else
-
-			-- Khôi phục chất lượng mặc định
-			settings().Rendering.QualityLevel =
-				Enum.QualityLevel.Automatic
-
-		end
-
-	end
+PageTitle(
+    FarmPage,
+    "Farm",
+    "Module interface for your own Roblox game"
 )
 
---==================================================
--- SHOW MAIN PAGE
---==================================================
+local FarmCard = Card(FarmPage, 68, 190)
 
-mainPage.Visible = true
+local FarmInfo = NewLabel(
+    FarmCard,
+    "FARM MODULE",
+    16,
+    C.Text,
+    Enum.Font.GothamBold
+)
+FarmInfo.Position = UDim2.fromOffset(15, 12)
+FarmInfo.Size = UDim2.new(1, -30, 0, 25)
+FarmInfo.TextXAlignment = Enum.TextXAlignment.Left
 
---==================================================
--- KEY VERIFY
---==================================================
+local FarmDesc = NewLabel(
+    FarmCard,
+    "This section is a safe framework for\n" ..
+    "automation modules in games you own.",
+    11,
+    C.SubText
+)
+FarmDesc.Position = UDim2.fromOffset(15, 40)
+FarmDesc.Size = UDim2.new(1, -30, 0, 40)
+FarmDesc.TextXAlignment = Enum.TextXAlignment.Left
+FarmDesc.TextYAlignment = Enum.TextYAlignment.Top
 
-check.MouseButton1Click:Connect(function()
+Toggle(
+    FarmCard,
+    "Auto Farm",
+    "Demo toggle - no external game automation",
+    90,
+    function(enabled)
+        print("Auto Farm:", enabled)
+    end
+)
 
-	if keyBox.Text == KEY then
+Toggle(
+    FarmCard,
+    "Auto Quest",
+    "Demo toggle for your own game",
+    145,
+    function(enabled)
+        print("Auto Quest:", enabled)
+    end
+)
 
-		status.Text = "Status: Key accepted!"
-		status.TextColor3 = Color3.fromRGB(70,255,150)
+--========================================================
+-- PLAYER
+--========================================================
 
-		check.Text = "VERIFIED"
+PageTitle(
+    PlayerPage,
+    "Player",
+    "Player information"
+)
 
-		task.wait(.4)
+local PlayerCard = Card(PlayerPage, 68, 125)
 
-		keyFrame.Visible = false
-		logoButton.Visible = true
+local Username = NewLabel(
+    PlayerCard,
+    "Username: " .. Player.Name,
+    13,
+    C.Text
+)
+Username.Position = UDim2.fromOffset(15, 18)
+Username.Size = UDim2.new(1, -30, 0, 25)
+Username.TextXAlignment = Enum.TextXAlignment.Left
 
-	else
+local UserId = NewLabel(
+    PlayerCard,
+    "UserId: " .. tostring(Player.UserId),
+    11,
+    C.SubText
+)
+UserId.Position = UDim2.fromOffset(15, 48)
+UserId.Size = UDim2.new(1, -30, 0, 22)
+UserId.TextXAlignment = Enum.TextXAlignment.Left
 
-		status.Text = "Status: Invalid key!"
-		status.TextColor3 = Color3.fromRGB(255,80,90)
+--========================================================
+-- VISUAL
+--========================================================
 
-	end
+PageTitle(
+    VisualPage,
+    "Visual",
+    "Lighting and visual settings"
+)
 
-end)
+local VisualCard = Card(VisualPage, 68, 190)
 
---==================================================
+local OldLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+Toggle(
+    VisualCard,
+    "Fullbright",
+    "Increase visibility in dark areas",
+    12,
+    function(enabled)
+
+        if enabled then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.Ambient = Color3.new(1,1,1)
+            Lighting.OutdoorAmbient = Color3.new(1,1,1)
+        else
+            Lighting.Brightness = OldLighting.Brightness
+            Lighting.ClockTime = OldLighting.ClockTime
+            Lighting.FogEnd = OldLighting.FogEnd
+            Lighting.GlobalShadows = OldLighting.GlobalShadows
+            Lighting.Ambient = OldLighting.Ambient
+            Lighting.OutdoorAmbient = OldLighting.OutdoorAmbient
+        end
+    end
+)
+
+Toggle(
+    VisualCard,
+    "Disable Shadows",
+    "Reduce client rendering load",
+    70,
+    function(enabled)
+
+        Lighting.GlobalShadows = not enabled
+
+    end
+)
+
+Toggle(
+    VisualCard,
+    "Low Graphics",
+    "Lower Roblox rendering quality",
+    128,
+    function(enabled)
+
+        if enabled then
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Level01
+        else
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Automatic
+        end
+
+    end
+)
+
+--========================================================
+-- SETTINGS
+--========================================================
+
+PageTitle(
+    SettingsPage,
+    "Settings",
+    "Performance and interface"
+)
+
+local PerformanceCard = Card(SettingsPage, 68, 245)
+
+Toggle(
+    PerformanceCard,
+    "Fix Lag",
+    "Disable common client visual effects",
+    12,
+    function(enabled)
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+
+            if obj:IsA("ParticleEmitter")
+            or obj:IsA("Trail")
+            or obj:IsA("Beam") then
+
+                if enabled then
+                    obj:SetAttribute("MaruWasEnabled", obj.Enabled)
+                    obj.Enabled = false
+                else
+                    local oldState =
+                        obj:GetAttribute("MaruWasEnabled")
+
+                    if oldState ~= nil then
+                        obj.Enabled = oldState
+                        obj:SetAttribute(
+                            "MaruWasEnabled",
+                            nil
+                        )
+                    end
+                end
+
+            end
+
+        end
+
+    end
+)
+
+Toggle(
+    PerformanceCard,
+    "Low Quality",
+    "Set Roblox rendering quality to minimum",
+    70,
+    function(enabled)
+
+        if enabled then
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Level01
+        else
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Automatic
+        end
+
+    end
+)
+
+Toggle(
+    PerformanceCard,
+    "Disable Shadows",
+    "Turn off global shadows",
+    128,
+    function(enabled)
+
+        Lighting.GlobalShadows = not enabled
+
+    end
+)
+
+Toggle(
+    PerformanceCard,
+    "Performance Mode",
+    "Combine several performance settings",
+    186,
+    function(enabled)
+
+        if enabled then
+
+            Lighting.GlobalShadows = false
+
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Level01
+
+            for _, obj in ipairs(workspace:GetDescendants()) do
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam") then
+
+                    obj:SetAttribute(
+                        "MaruPerformance",
+                        obj.Enabled
+                    )
+
+                    obj.Enabled = false
+                end
+
+            end
+
+        else
+
+            Lighting.GlobalShadows =
+                OldLighting.GlobalShadows
+
+            settings().Rendering.QualityLevel =
+                Enum.QualityLevel.Automatic
+
+        end
+
+    end
+)
+
+--========================================================
+-- DEFAULT PAGE
+--========================================================
+
+MainPage.Visible = true
+TabButtons.Main.BackgroundColor3 =
+    Color3.fromRGB(0, 75, 145)
+TabButtons.Main.TextColor3 = C.Text
+
+--========================================================
 -- OPEN / CLOSE
---==================================================
-
-logoButton.MouseButton1Click:Connect(function()
-	hub.Visible = not hub.Visible
-end)
-
-close.MouseButton1Click:Connect(function()
-	hub.Visible = false
-end)
-
---==================================================
--- DRAG
---==================================================
-
-local function draggable(frame,handle)
-
-	local dragging = false
-	local start
-	local startPos
-
-	handle.InputBegan:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch then
-
-			dragging = true
-			start = input.Position
-			startPos = frame.Position
-
-		end
-
-	end)
-
-	UIS.InputChanged:Connect(function(input)
-
-		if not dragging then return end
-
-		if input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch then
-
-			local delta = input.Position - start
-
-			frame.Position = UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
-			)
-
-		end
-
-	end)
-
-	UIS.InputEnded:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch then
-
-			dragging = false
-
-		end
-
-	end)
-
-end
-
-draggable(hub,header)
-draggable(logoButton,logoButton)
-
---==================================================
--- TEST KEY
---==================================================
-
-pcall(function()
-
-	game:GetService("StarterGui"):SetCore(
-		"SendNotification",
-		{
-			Title = "MARU TEST KEY",
-			Text = KEY,
-			Duration = 10
-		}
-	)
-
-end)
+--=================================================
