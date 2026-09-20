@@ -1,68 +1,94 @@
-local P=game:GetService("Players")
-local H=game:GetService("HttpService")
-local p=P.LocalPlayer
-local g=Instance.new("ScreenGui",p:WaitForChild("PlayerGui"))
-g.Name="MaruDemo"
+--// MARU STYLE HUB - DEMO KEY SYSTEM
 
-local key="MARU-"..string.upper(H:GenerateGUID(false):gsub("-",""):sub(1,8))
-print("TEST KEY:",key)
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 
-local f=Instance.new("Frame",g)
-f.Size=UDim2.fromOffset(400,240)
-f.Position=UDim2.fromScale(.5,.5)
-f.AnchorPoint=Vector2.new(.5,.5)
-f.BackgroundColor3=Color3.fromRGB(20,20,27)
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "MaruHub"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-Instance.new("UICorner",f).CornerRadius=UDim.new(0,12)
+-- Random test key
+local KEY = "MARU-" .. string.upper(
+    HttpService:GenerateGUID(false):gsub("-", ""):sub(1, 8)
+)
 
-local t=Instance.new("TextLabel",f)
-t.Size=UDim2.new(1,-30,0,45)
-t.Position=UDim2.fromOffset(15,10)
-t.BackgroundTransparency=1
-t.Text="MARU STYLE HUB"
-t.TextColor3=Color3.new(1,1,1)
-t.TextSize=23
-t.Font=Enum.Font.GothamBold
-t.TextXAlignment=Enum.TextXAlignment.Left
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(400, 240)
+main.Position = UDim2.fromScale(.5, .5)
+main.AnchorPoint = Vector2.new(.5, .5)
+main.BackgroundColor3 = Color3.fromRGB(20,20,27)
+main.BorderSizePixel = 0
+main.Parent = gui
 
-local b=Instance.new("TextBox",f)
-b.Size=UDim2.new(1,-30,0,45)
-b.Position=UDim2.fromOffset(15,65)
-b.PlaceholderText="Enter key..."
-b.Text=""
-b.TextColor3=Color3.new(1,1,1)
-b.BackgroundColor3=Color3.fromRGB(32,32,42)
-b.Font=Enum.Font.Gotham
-b.TextSize=14
-Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
 
-local c=Instance.new("TextButton",f)
-c.Size=UDim2.new(1,-30,0,45)
-c.Position=UDim2.fromOffset(15,120)
-c.Text="CHECK KEY"
-c.TextColor3=Color3.new(1,1,1)
-c.BackgroundColor3=Color3.fromRGB(100,70,255)
-c.Font=Enum.Font.GothamBold
-c.TextSize=14
-Instance.new("UICorner",c).CornerRadius=UDim.new(0,8)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-30,0,40)
+title.Position = UDim2.fromOffset(15,10)
+title.BackgroundTransparency = 1
+title.Text = "MARU STYLE HUB"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextSize = 23
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
 
-local s=Instance.new("TextLabel",f)
-s.Size=UDim2.new(1,-30,0,30)
-s.Position=UDim2.fromOffset(15,180)
-s.BackgroundTransparency=1
-s.Text="Status: Waiting..."
-s.TextColor3=Color3.fromRGB(170,170,180)
-s.Font=Enum.Font.Gotham
-s.TextSize=13
-s.TextXAlignment=Enum.TextXAlignment.Left
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(1,-30,0,25)
+info.Position = UDim2.fromOffset(15,48)
+info.BackgroundTransparency = 1
+info.Text = "Your test key: "..KEY
+info.TextColor3 = Color3.fromRGB(150,150,160)
+info.TextSize = 12
+info.Font = Enum.Font.Gotham
+info.TextXAlignment = Enum.TextXAlignment.Left
+info.Parent = main
 
-c.MouseButton1Click:Connect(function()
-    if b.Text==key then
-        s.Text="Status: Key accepted!"
-        s.TextColor3=Color3.fromRGB(80,255,130)
-        c.Text="VERIFIED"
+local box = Instance.new("TextBox")
+box.Size = UDim2.new(1,-30,0,45)
+box.Position = UDim2.fromOffset(15,78)
+box.PlaceholderText = "Enter key..."
+box.Text = ""
+box.TextColor3 = Color3.new(1,1,1)
+box.BackgroundColor3 = Color3.fromRGB(32,32,42)
+box.Font = Enum.Font.Gotham
+box.TextSize = 14
+box.Parent = main
+
+Instance.new("UICorner",box).CornerRadius = UDim.new(0,8)
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1,-30,0,45)
+button.Position = UDim2.fromOffset(15,132)
+button.Text = "CHECK KEY"
+button.TextColor3 = Color3.new(1,1,1)
+button.BackgroundColor3 = Color3.fromRGB(100,70,255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+button.Parent = main
+
+Instance.new("UICorner",button).CornerRadius = UDim.new(0,8)
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1,-30,0,30)
+status.Position = UDim2.fromOffset(15,190)
+status.BackgroundTransparency = 1
+status.Text = "Status: Waiting..."
+status.TextColor3 = Color3.fromRGB(170,170,180)
+status.TextSize = 13
+status.Font = Enum.Font.Gotham
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = main
+
+button.MouseButton1Click:Connect(function()
+    if box.Text == KEY then
+        status.Text = "Status: Key accepted!"
+        status.TextColor3 = Color3.fromRGB(80,255,130)
+        button.Text = "VERIFIED"
     else
-        s.Text="Status: Invalid key!"
-        s.TextColor3=Color3.fromRGB(255,80,90)
+        status.Text = "Status: Invalid key!"
+        status.TextColor3 = Color3.fromRGB(255,80,90)
     end
 end)
