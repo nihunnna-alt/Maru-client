@@ -1,26 +1,20 @@
 --[[
-    MARU HUB
-    Mobile Roblox UI
-    Safe framework for a Roblox experience owned/authorized by you.
+    MARU HUB - CLEAN MOBILE BUILD
+    For Roblox experiences you own/are authorized to test.
 
-    Test Key:
+    TEST KEY:
     MARU-2026-TEST
 
-    Expected game structure for Farm:
+    Expected optional structure:
     Workspace
-      └─ FarmTargets
-           ├─ NPC
-           ├─ NPC
-           └─ ...
-    
+        FarmTargets
+            NPC models with Humanoid + HumanoidRootPart
+
     Optional:
     ReplicatedStorage
-      └─ MaruRemotes
-           ├─ Attack
-           └─ AcceptQuest
-
-    The script does NOT attempt to access or bypass another game's
-    private/anti-cheat systems.
+        MaruRemotes
+            Attack      (RemoteEvent)
+            AcceptQuest (RemoteEvent)
 ]]
 
 --// SERVICES
@@ -30,7 +24,8 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LocalPlayer = Players.LocalPlayer
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --// CONFIG
 local TEST_KEY = "MARU-2026-TEST"
@@ -39,6 +34,7 @@ local Config = {
     AutoFarm = false,
     AutoQuest = false,
     AutoAttack = false,
+
     Fullbright = false,
     DisableShadows = false,
     LowGraphics = false,
@@ -52,7 +48,7 @@ local C = {
     Background = Color3.fromRGB(10, 13, 20),
     Sidebar = Color3.fromRGB(14, 18, 28),
     Card = Color3.fromRGB(19, 24, 36),
-    Card2 = Color3.fromRGB(24, 30, 44),
+    Card2 = Color3.fromRGB(26, 33, 48),
 
     Accent = Color3.fromRGB(40, 150, 255),
     Accent2 = Color3.fromRGB(70, 190, 255),
@@ -65,52 +61,86 @@ local C = {
     Red = Color3.fromRGB(255, 80, 90)
 }
 
+--// CLEAN OLD UI
+local oldGui = PlayerGui:FindFirstChild("MaruHub")
+if oldGui then
+    oldGui:Destroy()
+end
+
 --// HELPERS
-local function corner(parent, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 8)
-    c.Parent = parent
-    return c
+local function Corner(parent, radius)
+    local obj = Instance.new("UICorner")
+    obj.CornerRadius = UDim.new(0, radius or 8)
+    obj.Parent = parent
+    return obj
 end
 
-local function stroke(parent, color, transparency)
-    local s = Instance.new("UIStroke")
-    s.Color = color or C.Accent
-    s.Transparency = transparency or 0
-    s.Thickness = 1
-    s.Parent = parent
-    return s
+local function Stroke(parent, color, transparency)
+    local obj = Instance.new("UIStroke")
+    obj.Color = color or C.Accent
+    obj.Transparency = transparency or 0
+    obj.Thickness = 1
+    obj.Parent = parent
+    return obj
 end
 
-local function padding(parent, amount)
-    local p = Instance.new("UIPadding")
-    p.PaddingTop = UDim.new(0, amount)
-    p.PaddingBottom = UDim.new(0, amount)
-    p.PaddingLeft = UDim.new(0, amount)
-    p.PaddingRight = UDim.new(0, amount)
-    p.Parent = parent
-    return p
+local function Tween(obj, props, duration)
+    local ok, result = pcall(function()
+        return TweenService:Create(
+            obj,
+            TweenInfo.new(
+                duration or 0.18,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            props
+        )
+    end)
+
+    if ok and result then
+        result:Play()
+    end
 end
 
-local function tween(object, properties, duration)
-    TweenService:Create(
-        object,
-        TweenInfo.new(duration or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        properties
-    ):Play()
+local function Label(parent, text, size, color)
+    local obj = Instance.new("TextLabel")
+    obj.BackgroundTransparency = 1
+    obj.Size = size or UDim2.new(1, 0, 0, 30)
+    obj.Text = text or ""
+    obj.TextColor3 = color or C.Text
+    obj.Font = Enum.Font.Gotham
+    obj.TextSize = 14
+    obj.TextXAlignment = Enum.TextXAlignment.Left
+    obj.Parent = parent
+    return obj
 end
 
-local function makeLabel(parent, text, size, color)
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.Size = size or UDim2.new(1, 0, 0, 30)
-    label.Font = Enum.Font.Gotham
-    label.Text = text or ""
-    label.TextColor3 = color or C.Text
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = parent
-    return label
+local function Button(parent, text, size)
+    local obj = Instance.new("TextButton")
+    obj.Size = size or UDim2.new(1, 0, 0, 42)
+    obj.BackgroundColor3 = C.Card
+    obj.Text = text
+    obj.TextColor3 = C.Text
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = 13
+    obj.AutoButtonColor = false
+    obj.Parent = parent
+
+    Corner(obj, 8)
+
+    obj.MouseEnter:Connect(function()
+        Tween(obj, {
+            BackgroundColor3 = C.Card2
+        }, 0.12)
+    end)
+
+    obj.MouseLeave:Connect(function()
+        Tween(obj, {
+            BackgroundColor3 = C.Card
+        }, 0.12)
+    end)
+
+    return obj
 end
 
 --// GUI
@@ -119,73 +149,82 @@ Gui.Name = "MaruHub"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+Gui.Parent = PlayerGui
 
---// KEY SCREEN
+--==================================================
+-- KEY SCREEN
+--==================================================
+
 local KeyFrame = Instance.new("Frame")
 KeyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 KeyFrame.Position = UDim2.fromScale(0.5, 0.5)
-KeyFrame.Size = UDim2.fromOffset(340, 220)
+KeyFrame.Size = UDim2.fromOffset(350, 225)
 KeyFrame.BackgroundColor3 = C.Background
 KeyFrame.Parent = Gui
-corner(KeyFrame, 14)
-stroke(KeyFrame, C.Accent, 0.35)
 
-local KeyTitle = makeLabel(
+Corner(KeyFrame, 14)
+Stroke(KeyFrame, C.Accent, 0.25)
+
+local KeyTitle = Label(
     KeyFrame,
     "MARU HUB",
-    UDim2.new(1, -40, 0, 40),
+    UDim2.new(1, -40, 0, 35),
     C.Text
 )
-KeyTitle.Position = UDim2.fromOffset(20, 18)
-KeyTitle.Font = Enum.Font.GothamBold
+
+KeyTitle.Position = UDim2.fromOffset(20, 15)
+KeyTitle.Font = Enum.Font.GothamBlack
 KeyTitle.TextSize = 24
 
-local KeySubtitle = makeLabel(
+local KeySubtitle = Label(
     KeyFrame,
     "Enter your access key",
     UDim2.new(1, -40, 0, 25),
     C.SubText
 )
-KeySubtitle.Position = UDim2.fromOffset(20, 55)
+
+KeySubtitle.Position = UDim2.fromOffset(20, 50)
+KeySubtitle.TextSize = 12
 
 local KeyBox = Instance.new("TextBox")
-KeyBox.Position = UDim2.fromOffset(20, 92)
+KeyBox.Position = UDim2.fromOffset(20, 82)
 KeyBox.Size = UDim2.new(1, -40, 0, 42)
 KeyBox.BackgroundColor3 = C.Card
-KeyBox.PlaceholderText = "Key..."
-KeyBox.PlaceholderColor3 = C.SubText
 KeyBox.TextColor3 = C.Text
+KeyBox.PlaceholderColor3 = C.SubText
+KeyBox.PlaceholderText = "Enter key..."
+KeyBox.Text = ""
+KeyBox.ClearTextOnFocus = false
 KeyBox.Font = Enum.Font.Gotham
 KeyBox.TextSize = 14
-KeyBox.ClearTextOnFocus = false
-KeyBox.Text = ""
 KeyBox.Parent = KeyFrame
-corner(KeyBox, 8)
-stroke(KeyBox, C.Card2, 0)
 
-local CheckButton = Instance.new("TextButton")
-CheckButton.Position = UDim2.fromOffset(20, 145)
-CheckButton.Size = UDim2.new(1, -40, 0, 42)
+Corner(KeyBox, 8)
+Stroke(KeyBox, C.Card2)
+
+local CheckButton = Button(
+    KeyFrame,
+    "CHECK KEY",
+    UDim2.new(1, -40, 0, 42)
+)
+
+CheckButton.Position = UDim2.fromOffset(20, 133)
 CheckButton.BackgroundColor3 = C.Accent
-CheckButton.Text = "CHECK KEY"
-CheckButton.TextColor3 = Color3.new(1, 1, 1)
-CheckButton.Font = Enum.Font.GothamBold
-CheckButton.TextSize = 14
-CheckButton.AutoButtonColor = false
-CheckButton.Parent = KeyFrame
-corner(CheckButton, 8)
 
-local Status = makeLabel(
+local Status = Label(
     KeyFrame,
     "",
-    UDim2.new(1, -40, 0, 22),
+    UDim2.new(1, -40, 0, 25),
     C.SubText
 )
-Status.Position = UDim2.fromOffset(20, 190)
+
+Status.Position = UDim2.fromOffset(20, 184)
 Status.TextSize = 12
 
---// MAIN HUB
+--==================================================
+-- MAIN HUB
+--==================================================
+
 local Hub = Instance.new("Frame")
 Hub.AnchorPoint = Vector2.new(0.5, 0.5)
 Hub.Position = UDim2.fromScale(0.5, 0.5)
@@ -193,12 +232,17 @@ Hub.Size = UDim2.fromOffset(650, 410)
 Hub.BackgroundColor3 = C.Background
 Hub.Visible = false
 Hub.Parent = Gui
-corner(Hub, 14)
-stroke(Hub, C.Accent, 0.4)
 
--- Mobile resize
-local function resizeForDevice()
+Corner(Hub, 14)
+Stroke(Hub, C.Accent, 0.3)
+
+--==================================================
+-- MOBILE RESIZE
+--==================================================
+
+local function ResizeHub()
     local camera = workspace.CurrentCamera
+
     if not camera then
         return
     end
@@ -212,42 +256,50 @@ local function resizeForDevice()
     end
 end
 
-resizeForDevice()
+ResizeHub()
 
 if workspace.CurrentCamera then
-    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(resizeForDevice)
+    workspace.CurrentCamera:GetPropertyChangedSignal(
+        "ViewportSize"
+    ):Connect(ResizeHub)
 end
 
---// SIDEBAR
+--==================================================
+-- SIDEBAR
+--==================================================
+
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 145, 1, 0)
 Sidebar.BackgroundColor3 = C.Sidebar
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Hub
-corner(Sidebar, 14)
 
-local Logo = makeLabel(
+Corner(Sidebar, 14)
+
+local Logo = Label(
     Sidebar,
     "MARU",
-    UDim2.new(1, -24, 0, 40),
+    UDim2.new(1, -24, 0, 35),
     C.Accent2
 )
+
 Logo.Position = UDim2.fromOffset(12, 15)
 Logo.Font = Enum.Font.GothamBlack
 Logo.TextSize = 22
 
-local Version = makeLabel(
+local Version = Label(
     Sidebar,
     "v2 • Mobile",
     UDim2.new(1, -24, 0, 20),
     C.SubText
 )
-Version.Position = UDim2.fromOffset(12, 48)
+
+Version.Position = UDim2.fromOffset(12, 46)
 Version.TextSize = 11
 
 local Tabs = Instance.new("Frame")
-Tabs.Position = UDim2.fromOffset(10, 82)
-Tabs.Size = UDim2.new(1, -20, 1, -94)
+Tabs.Position = UDim2.fromOffset(10, 78)
+Tabs.Size = UDim2.new(1, -20, 1, -90)
 Tabs.BackgroundTransparency = 1
 Tabs.Parent = Sidebar
 
@@ -255,112 +307,128 @@ local TabsLayout = Instance.new("UIListLayout")
 TabsLayout.Padding = UDim.new(0, 7)
 TabsLayout.Parent = Tabs
 
---// CONTENT
+--==================================================
+-- CONTENT
+--==================================================
+
 local Content = Instance.new("Frame")
 Content.Position = UDim2.new(0, 145, 0, 0)
 Content.Size = UDim2.new(1, -145, 1, 0)
 Content.BackgroundTransparency = 1
 Content.Parent = Hub
 
-local PageTitle = makeLabel(
+local PageTitle = Label(
     Content,
     "Main",
-    UDim2.new(1, -40, 0, 40),
+    UDim2.new(1, -40, 0, 35),
     C.Text
 )
+
 PageTitle.Position = UDim2.fromOffset(20, 15)
 PageTitle.Font = Enum.Font.GothamBold
 PageTitle.TextSize = 21
 
-local PageSubtitle = makeLabel(
+local PageSubtitle = Label(
     Content,
     "Maru Hub control panel",
     UDim2.new(1, -40, 0, 24),
     C.SubText
 )
-PageSubtitle.Position = UDim2.fromOffset(20, 47)
+
+PageSubtitle.Position = UDim2.fromOffset(20, 45)
 PageSubtitle.TextSize = 12
 
 local PageContainer = Instance.new("Frame")
-PageContainer.Position = UDim2.fromOffset(20, 80)
-PageContainer.Size = UDim2.new(1, -40, 1, -95)
+PageContainer.Position = UDim2.fromOffset(20, 77)
+PageContainer.Size = UDim2.new(1, -40, 1, -92)
 PageContainer.BackgroundTransparency = 1
 PageContainer.Parent = Content
 
---// PAGE SYSTEM
+--==================================================
+-- PAGE SYSTEM
+--==================================================
+
 local Pages = {}
 
-local function createPage(name)
+local function CreatePage(name)
     local page = Instance.new("ScrollingFrame")
+
     page.Name = name
     page.Size = UDim2.fromScale(1, 1)
     page.BackgroundTransparency = 1
     page.BorderSizePixel = 0
     page.ScrollBarThickness = 3
     page.ScrollBarImageColor3 = C.Accent
-    page.Visible = false
     page.CanvasSize = UDim2.new()
     page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.Visible = false
     page.Parent = PageContainer
 
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 10)
+    layout.Padding = UDim.new(0, 9)
     layout.Parent = page
 
     Pages[name] = page
+
     return page
 end
 
-local function addSection(page, title, subtitle)
-    local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 55)
-    section.BackgroundColor3 = C.Card
-    section.Parent = page
-    corner(section, 9)
+local function Section(page, title, subtitle)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 55)
+    frame.BackgroundColor3 = C.Card
+    frame.Parent = page
 
-    local titleLabel = makeLabel(
-        section,
+    Corner(frame, 9)
+
+    local titleLabel = Label(
+        frame,
         title,
-        UDim2.new(1, -20, 0, 24),
+        UDim2.new(1, -24, 0, 24),
         C.Text
     )
+
     titleLabel.Position = UDim2.fromOffset(12, 7)
     titleLabel.Font = Enum.Font.GothamBold
 
-    local sub = makeLabel(
-        section,
+    local sub = Label(
+        frame,
         subtitle or "",
-        UDim2.new(1, -20, 0, 20),
+        UDim2.new(1, -24, 0, 20),
         C.SubText
     )
+
     sub.Position = UDim2.fromOffset(12, 30)
     sub.TextSize = 11
 
-    return section
+    return frame
 end
 
-local function addToggle(page, title, description, callback)
+local function Toggle(page, title, description, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 62)
     frame.BackgroundColor3 = C.Card
     frame.Parent = page
-    corner(frame, 9)
 
-    local titleLabel = makeLabel(
+    Corner(frame, 9)
+
+    local titleLabel = Label(
         frame,
         title,
-        UDim2.new(1, -80, 0, 25),
+        UDim2.new(1, -85, 0, 24),
         C.Text
     )
+
     titleLabel.Position = UDim2.fromOffset(12, 7)
     titleLabel.Font = Enum.Font.GothamBold
 
-    local desc = makeLabel(
+    local desc = Label(
         frame,
         description or "",
-        UDim2.new(1, -80, 0, 20),
+        UDim2.new(1, -85, 0, 20),
         C.SubText
     )
+
     desc.Position = UDim2.fromOffset(12, 32)
     desc.TextSize = 11
 
@@ -372,129 +440,142 @@ local function addToggle(page, title, description, callback)
     toggle.Text = ""
     toggle.AutoButtonColor = false
     toggle.Parent = frame
-    corner(toggle, 20)
+
+    Corner(toggle, 20)
 
     local knob = Instance.new("Frame")
     knob.Size = UDim2.fromOffset(20, 20)
     knob.Position = UDim2.fromOffset(3, 3)
     knob.BackgroundColor3 = C.Text
     knob.Parent = toggle
-    corner(knob, 20)
+
+    Corner(knob, 20)
 
     local state = false
 
-    local function setState(value)
-        state = value
+    local function Set(value)
+        state = value == true
 
         if state then
-            tween(toggle, {BackgroundColor3 = C.Accent}, 0.15)
-            tween(knob, {Position = UDim2.new(1, -23, 0, 3)}, 0.15)
+            Tween(toggle, {
+                BackgroundColor3 = C.Accent
+            })
+
+            Tween(knob, {
+                Position = UDim2.new(1, -23, 0, 3)
+            })
         else
-            tween(toggle, {BackgroundColor3 = C.Off}, 0.15)
-            tween(knob, {Position = UDim2.fromOffset(3, 3)}, 0.15)
+            Tween(toggle, {
+                BackgroundColor3 = C.Off
+            })
+
+            Tween(knob, {
+                Position = UDim2.fromOffset(3, 3)
+            })
         end
 
-        callback(state)
+        if callback then
+            callback(state)
+        end
     end
 
     toggle.MouseButton1Click:Connect(function()
-        setState(not state)
+        Set(not state)
     end)
 
     return {
-        Frame = frame,
-        Set = setState,
+        Set = Set,
         Get = function()
             return state
         end
     }
 end
 
-local function addButton(page, title, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 46)
-    button.BackgroundColor3 = C.Card
-    button.Text = title
-    button.TextColor3 = C.Text
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 13
-    button.AutoButtonColor = false
-    button.Parent = page
-    corner(button, 9)
+--==================================================
+-- CREATE PAGES
+--==================================================
 
-    button.MouseButton1Click:Connect(callback)
+local MainPage = CreatePage("Main")
+local FarmPage = CreatePage("Farm")
+local PlayerPage = CreatePage("Player")
+local VisualPage = CreatePage("Visual")
+local SettingsPage = CreatePage("Settings")
 
-    button.MouseEnter:Connect(function()
-        tween(button, {BackgroundColor3 = C.Card2}, 0.12)
-    end)
-
-    button.MouseLeave:Connect(function()
-        tween(button, {BackgroundColor3 = C.Card}, 0.12)
-    end)
-
-    return button
-end
-
---// PAGES
-local MainPage = createPage("Main")
-local FarmPage = createPage("Farm")
-local PlayerPage = createPage("Player")
-local VisualPage = createPage("Visual")
-local SettingsPage = createPage("Settings")
-
+--==================================================
 -- MAIN
-addSection(MainPage, "Welcome to Maru", "Mobile control center")
+--==================================================
 
-addButton(MainPage, "Open Farm", function()
-    PageTitle.Text = "Farm"
-    PageSubtitle.Text = "Automation controls"
-    for _, page in pairs(Pages) do
-        page.Visible = false
-    end
-    FarmPage.Visible = true
+Section(
+    MainPage,
+    "Welcome to Maru",
+    "Mobile control center"
+)
+
+local OpenFarm = Button(
+    MainPage,
+    "OPEN FARM"
+)
+
+OpenFarm.MouseButton1Click:Connect(function()
+    SelectPage("Farm")
 end)
 
-addButton(MainPage, "Refresh Character", function()
-    if LocalPlayer.Character then
-        LocalPlayer.Character:BreakJoints()
+local Refresh = Button(
+    MainPage,
+    "REFRESH CHARACTER"
+)
+
+Refresh.MouseButton1Click:Connect(function()
+    local character = Player.Character
+
+    if character then
+        character:BreakJoints()
     end
 end)
 
+--==================================================
 -- FARM
-addSection(
+--==================================================
+
+Section(
     FarmPage,
     "Farm System",
     "Authorized game automation framework"
 )
 
-local AutoFarmToggle = addToggle(
+local AutoFarmToggle = Toggle(
     FarmPage,
     "Auto Farm",
-    "Automatically select the nearest authorized target",
+    "Select the nearest target from FarmTargets",
     function(value)
         Config.AutoFarm = value
     end
 )
 
-local AutoQuestToggle = addToggle(
+local AutoQuestToggle = Toggle(
     FarmPage,
     "Auto Quest",
-    "Automatically request the current game's farm quest",
+    "Use the authorized AcceptQuest RemoteEvent",
     function(value)
         Config.AutoQuest = value
     end
 )
 
-local AutoAttackToggle = addToggle(
+local AutoAttackToggle = Toggle(
     FarmPage,
     "Auto Attack",
-    "Use the game's authorized combat interface",
+    "Use the authorized Attack RemoteEvent",
     function(value)
         Config.AutoAttack = value
     end
 )
 
-addButton(FarmPage, "Stop Farm", function()
+local StopFarm = Button(
+    FarmPage,
+    "STOP ALL FARM"
+)
+
+StopFarm.MouseButton1Click:Connect(function()
     Config.AutoFarm = false
     Config.AutoQuest = false
     Config.AutoAttack = false
@@ -504,37 +585,55 @@ addButton(FarmPage, "Stop Farm", function()
     AutoAttackToggle.Set(false)
 end)
 
+--==================================================
 -- PLAYER
-addSection(
+--==================================================
+
+Section(
     PlayerPage,
     "Player",
     "Local player information"
 )
 
 local PlayerInfo = Instance.new("Frame")
-PlayerInfo.Size = UDim2.new(1, 0, 0, 100)
+PlayerInfo.Size = UDim2.new(1, 0, 0, 105)
 PlayerInfo.BackgroundColor3 = C.Card
 PlayerInfo.Parent = PlayerPage
-corner(PlayerInfo, 9)
 
-local NameLabel = makeLabel(
+Corner(PlayerInfo, 9)
+
+local NameLabel = Label(
     PlayerInfo,
-    "Username: " .. LocalPlayer.Name,
-    UDim2.new(1, -20, 0, 30),
+    "Username: " .. Player.Name,
+    UDim2.new(1, -24, 0, 28),
     C.Text
 )
+
 NameLabel.Position = UDim2.fromOffset(12, 12)
 
-local UserIdLabel = makeLabel(
+local UserIdLabel = Label(
     PlayerInfo,
-    "UserId: " .. tostring(LocalPlayer.UserId),
-    UDim2.new(1, -20, 0, 30),
+    "UserId: " .. tostring(Player.UserId),
+    UDim2.new(1, -24, 0, 28),
     C.SubText
 )
+
 UserIdLabel.Position = UDim2.fromOffset(12, 45)
 
+local StatusLabel = Label(
+    PlayerInfo,
+    "Maru status: READY",
+    UDim2.new(1, -24, 0, 25),
+    C.Green
+)
+
+StatusLabel.Position = UDim2.fromOffset(12, 73)
+
+--==================================================
 -- VISUAL
-addSection(
+--==================================================
+
+Section(
     VisualPage,
     "Visual",
     "Client-side visual options"
@@ -549,7 +648,16 @@ local OldLighting = {
     OutdoorAmbient = Lighting.OutdoorAmbient
 }
 
-addToggle(
+local function RestoreLighting()
+    Lighting.Brightness = OldLighting.Brightness
+    Lighting.ClockTime = OldLighting.ClockTime
+    Lighting.FogEnd = OldLighting.FogEnd
+    Lighting.GlobalShadows = OldLighting.GlobalShadows
+    Lighting.Ambient = OldLighting.Ambient
+    Lighting.OutdoorAmbient = OldLighting.OutdoorAmbient
+end
+
+Toggle(
     VisualPage,
     "Fullbright",
     "Increase local scene visibility",
@@ -564,17 +672,12 @@ addToggle(
             Lighting.Ambient = Color3.new(1, 1, 1)
             Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
         else
-            Lighting.Brightness = OldLighting.Brightness
-            Lighting.ClockTime = OldLighting.ClockTime
-            Lighting.FogEnd = OldLighting.FogEnd
-            Lighting.GlobalShadows = OldLighting.GlobalShadows
-            Lighting.Ambient = OldLighting.Ambient
-            Lighting.OutdoorAmbient = OldLighting.OutdoorAmbient
+            RestoreLighting()
         end
     end
 )
 
-addToggle(
+Toggle(
     VisualPage,
     "Disable Shadows",
     "Disable local global shadows",
@@ -584,50 +687,73 @@ addToggle(
     end
 )
 
-addToggle(
+Toggle(
     VisualPage,
     "Low Graphics",
-    "Reduce local rendering quality when supported",
+    "Reduce local rendering quality",
     function(value)
         Config.LowGraphics = value
 
         pcall(function()
             if value then
-                settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+                settings().Rendering.QualityLevel =
+                    Enum.QualityLevel.Level01
             else
-                settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+                settings().Rendering.QualityLevel =
+                    Enum.QualityLevel.Automatic
             end
         end)
     end
 )
 
+--==================================================
 -- SETTINGS
-addSection(
+--==================================================
+
+Section(
     SettingsPage,
     "Settings",
     "Maru configuration"
 )
 
-addButton(SettingsPage, "Reset Visual Settings", function()
-    Lighting.Brightness = OldLighting.Brightness
-    Lighting.ClockTime = OldLighting.ClockTime
-    Lighting.FogEnd = OldLighting.FogEnd
-    Lighting.GlobalShadows = OldLighting.GlobalShadows
-    Lighting.Ambient = OldLighting.Ambient
-    Lighting.OutdoorAmbient = OldLighting.OutdoorAmbient
+local ResetVisual = Button(
+    SettingsPage,
+    "RESET VISUAL SETTINGS"
+)
+
+ResetVisual.MouseButton1Click:Connect(function()
+    RestoreLighting()
 
     Config.Fullbright = false
     Config.DisableShadows = false
 end)
 
-addButton(SettingsPage, "Destroy Maru UI", function()
+local DestroyUI = Button(
+    SettingsPage,
+    "DESTROY MARU UI"
+)
+
+DestroyUI.BackgroundColor3 = C.Card
+
+DestroyUI.MouseButton1Click:Connect(function()
     Gui:Destroy()
 end)
 
---// TAB CREATION
+--==================================================
+-- TABS
+--==================================================
+
 local TabButtons = {}
 
-local function selectPage(name)
+local Subtitles = {
+    Main = "Maru Hub control panel",
+    Farm = "Automation controls",
+    Player = "Player information",
+    Visual = "Visual settings",
+    Settings = "Configuration"
+}
+
+function SelectPage(name)
     for pageName, page in pairs(Pages) do
         page.Visible = pageName == name
     end
@@ -641,20 +767,12 @@ local function selectPage(name)
     end
 
     PageTitle.Text = name
-
-    local subtitles = {
-        Main = "Maru Hub control panel",
-        Farm = "Automation controls",
-        Player = "Player information",
-        Visual = "Visual settings",
-        Settings = "Configuration"
-    }
-
-    PageSubtitle.Text = subtitles[name] or ""
+    PageSubtitle.Text = Subtitles[name] or ""
 end
 
-local function createTab(name)
+local function CreateTab(name)
     local button = Instance.new("TextButton")
+
     button.Size = UDim2.new(1, 0, 0, 38)
     button.BackgroundColor3 = C.Sidebar
     button.Text = name
@@ -663,29 +781,33 @@ local function createTab(name)
     button.TextSize = 13
     button.AutoButtonColor = false
     button.Parent = Tabs
-    corner(button, 8)
+
+    Corner(button, 8)
 
     button.MouseButton1Click:Connect(function()
-        selectPage(name)
+        SelectPage(name)
     end)
 
     TabButtons[name] = button
 end
 
-createTab("Main")
-createTab("Farm")
-createTab("Player")
-createTab("Visual")
-createTab("Settings")
+CreateTab("Main")
+CreateTab("Farm")
+CreateTab("Player")
+CreateTab("Visual")
+CreateTab("Settings")
 
-selectPage("Main")
+SelectPage("Main")
 
---// FARM TARGET FRAMEWORK
-local function getCharacter()
-    return LocalPlayer.Character
+--==================================================
+-- FARM TARGET SYSTEM
+--==================================================
+
+local function GetCharacter()
+    return Player.Character
 end
 
-local function getRoot(character)
+local function GetRoot(character)
     if not character then
         return nil
     end
@@ -693,15 +815,7 @@ local function getRoot(character)
     return character:FindFirstChild("HumanoidRootPart")
 end
 
-local function getHumanoid(character)
-    if not character then
-        return nil
-    end
-
-    return character:FindFirstChildOfClass("Humanoid")
-end
-
-local function getFarmTargets()
+local function GetTargets()
     local folder = workspace:FindFirstChild("FarmTargets")
 
     if not folder then
@@ -712,10 +826,16 @@ local function getFarmTargets()
 
     for _, object in ipairs(folder:GetChildren()) do
         if object:IsA("Model") then
-            local humanoid = object:FindFirstChildOfClass("Humanoid")
-            local root = object:FindFirstChild("HumanoidRootPart")
+            local humanoid =
+                object:FindFirstChildOfClass("Humanoid")
 
-            if humanoid and root and humanoid.Health > 0 then
+            local root =
+                object:FindFirstChild("HumanoidRootPart")
+
+            if humanoid
+                and root
+                and humanoid.Health > 0
+            then
                 table.insert(targets, object)
             end
         end
@@ -724,25 +844,27 @@ local function getFarmTargets()
     return targets
 end
 
-local function getNearestTarget()
-    local character = getCharacter()
-    local root = getRoot(character)
+local function GetNearestTarget()
+    local character = GetCharacter()
+    local root = GetRoot(character)
 
     if not root then
         return nil
     end
 
     local nearest = nil
-    local nearestDistance = math.huge
+    local distance = math.huge
 
-    for _, target in ipairs(getFarmTargets()) do
-        local targetRoot = target:FindFirstChild("HumanoidRootPart")
+    for _, target in ipairs(GetTargets()) do
+        local targetRoot =
+            target:FindFirstChild("HumanoidRootPart")
 
         if targetRoot then
-            local distance = (targetRoot.Position - root.Position).Magnitude
+            local currentDistance =
+                (targetRoot.Position - root.Position).Magnitude
 
-            if distance < nearestDistance then
-                nearestDistance = distance
+            if currentDistance < distance then
+                distance = currentDistance
                 nearest = target
             end
         end
@@ -751,95 +873,30 @@ local function getNearestTarget()
     return nearest
 end
 
-local function moveToTarget(target)
-    local character = getCharacter()
-    local root = getRoot(character)
-
-    if not root or not target then
-        return
-    end
-
-    local targetRoot = target:FindFirstChild("HumanoidRootPart")
-
-    if not targetRoot then
-        return
-    end
-
-    local destination =
-        targetRoot.Position
-        + Vector3.new(0, Config.FarmDistance, 0)
-
-    root.CFrame = CFrame.new(
-        destination,
-        targetRoot.Position
-    )
-end
-
-local function requestQuest()
-    if not Config.AutoQuest then
-        return
-    end
-
-    local remotes = ReplicatedStorage:FindFirstChild("MaruRemotes")
-
-    if not remotes then
-        return
-    end
-
-    local acceptQuest = remotes:FindFirstChild("AcceptQuest")
-
-    if acceptQuest and acceptQuest:IsA("RemoteEvent") then
-        acceptQuest:FireServer()
-    end
-end
-
-local function attackTarget(target)
-    if not Config.AutoAttack or not target then
-        return
-    end
-
-    local remotes = ReplicatedStorage:FindFirstChild("MaruRemotes")
-
-    if not remotes then
-        return
-    end
-
-    local attack = remotes:FindFirstChild("Attack")
-
-    if attack and attack:IsA("RemoteEvent") then
-        attack:FireServer(target)
-    end
-end
-
---// FARM LOOP
-local farmTimer = 0
-
-RunService.Heartbeat:Connect(function(deltaTime)
-    if not Config.AutoFarm then
-        return
-    end
-
-    farmTimer += deltaTime
-
-    if farmTimer < Config.AttackCooldown then
-        return
-    end
-
-    farmTimer = 0
-
-    requestQuest()
-
-    local target = getNearestTarget()
-
+local function MoveToTarget(target)
     if not target then
         return
     end
 
-    moveToTarget(target)
-    attackTarget(target)
-end)
+    local character = GetCharacter()
+    local root = GetRoot(character)
 
---// OPEN BUTTON
-local OpenButton = Instance.new("TextButton")
-OpenButton.AnchorPoint = Vector2.new(0, 0.5)
-OpenB
+    local targetRoot =
+        target:FindFirstChild("HumanoidRootPart")
+
+    if not root or not targetRoot then
+        return
+    end
+
+    local position =
+        targetRoot.Position
+        + Vector3.new(0, Config.FarmDistance, 0)
+
+    root.CFrame = CFrame.new(
+        position,
+        targetRoot.Position
+    )
+end
+
+local function RequestQuest()
+    if not Config.AutoQues
