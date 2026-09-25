@@ -1,1062 +1,808 @@
---==================================================
+--========================================================--
 -- MARU HUB
--- Clean Mobile UI + Auto Farm + Bring Mobs
--- For your own / authorized Roblox experience
---==================================================
+-- KEY UI + MOBILE MENU
+-- Authorized/local UI framework
+--========================================================--
 
 --// SERVICES
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
---// PLAYER
-local Player = Players.LocalPlayer
-if not Player then
-	return
-end
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local PlayerGui = Player:WaitForChild("PlayerGui")
-
---==================================================
--- CONFIG
---==================================================
+--// CONFIG
+local TEST_KEY = "MARU-2026-TEST"
 
 local Config = {
-	EnemyFolder = "Enemies",
-
-	AutoFarmDistance = 8,
-	BringDistance = 100,
-	BringRadius = 4,
-
-	Damage = 10,
-
-	FarmInterval = 0.08,
-	BringInterval = 0.05,
-
-	MobileWidth = 0.92,
-	MobileHeight = 0.72,
+    AutoFarm = false,
+    AutoAttack = false,
+    Fullbright = false,
+    FixLag = false,
+    HideEffects = false
 }
 
---==================================================
--- STATE
---==================================================
+--// COLORS
+local Color = {
+    Background = Color3.fromRGB(8, 11, 18),
+    Sidebar = Color3.fromRGB(13, 17, 27),
+    Card = Color3.fromRGB(18, 23, 35),
+    Card2 = Color3.fromRGB(23, 29, 43),
 
-local State = {
-	AutoFarm = false,
-	BringMobs = false,
-	Fullbright = false,
-	DisableShadows = false,
-	LowGraphics = false,
-	Destroyed = false,
+    Accent = Color3.fromRGB(45, 150, 255),
+    Accent2 = Color3.fromRGB(85, 190, 255),
+
+    Text = Color3.fromRGB(245, 248, 255),
+    SubText = Color3.fromRGB(145, 155, 175),
+
+    Green = Color3.fromRGB(70, 220, 130),
+    Red = Color3.fromRGB(255, 80, 90),
+
+    Off = Color3.fromRGB(55, 63, 78)
 }
 
-local Connections = {}
+--========================================================--
+-- CLEAN OLD UI
+--========================================================--
 
---==================================================
--- ORIGINAL LIGHTING
---==================================================
+local old = PlayerGui:FindFirstChild("MaruHub")
 
-local OriginalLighting = {
-	Brightness = Lighting.Brightness,
-	ClockTime = Lighting.ClockTime,
-	FogEnd = Lighting.FogEnd,
-	GlobalShadows = Lighting.GlobalShadows,
-	Ambient = Lighting.Ambient,
-	OutdoorAmbient = Lighting.OutdoorAmbient,
-}
-
---==================================================
--- CLEAN OLD GUI
---==================================================
-
-local OldGui = PlayerGui:FindFirstChild("MaruHub")
-
-if OldGui then
-	OldGui:Destroy()
+if old then
+    old:Destroy()
 end
 
---==================================================
--- GUI
---==================================================
+--========================================================--
+-- HELPERS
+--========================================================--
+
+local function corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+    return c
+end
+
+local function stroke(parent, color, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color or Color.Accent
+    s.Transparency = transparency or 0
+    s.Thickness = 1
+    s.Parent = parent
+    return s
+end
+
+local function tween(object, properties, duration)
+    TweenService:Create(
+        object,
+        TweenInfo.new(
+            duration or 0.2,
+            Enum.EasingStyle.Quart,
+            Enum.EasingDirection.Out
+        ),
+        properties
+    ):Play()
+end
+
+local function makeText(parent, text, size, color)
+    local label = Instance.new("TextLabel")
+
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = color or Color.Text
+    label.TextSize = size or 14
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+
+    return label
+end
+
+--========================================================--
+-- SCREEN GUI
+--========================================================--
 
 local Gui = Instance.new("ScreenGui")
-
 Gui.Name = "MaruHub"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
 
---==================================================
--- HELPERS
---==================================================
+--========================================================--
+-- KEY SCREEN
+--========================================================--
 
-local function New(className, properties)
-	local object = Instance.new(className)
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Name = "KeyFrame"
+KeyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+KeyFrame.Position = UDim2.fromScale(0.5, 0.5)
+KeyFrame.Size = UDim2.fromOffset(390, 245)
+KeyFrame.BackgroundColor3 = Color.Background
+KeyFrame.Parent = Gui
 
-	for property, value in pairs(properties) do
-		object[property] = value
-	end
+corner(KeyFrame, 14)
+stroke(KeyFrame, Color.Accent, 0.35)
 
-	return object
-end
+local KeyScale = Instance.new("UIScale")
+KeyScale.Parent = KeyFrame
 
-local function Round(parent, radius)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, radius)
-	corner.Parent = parent
+local KeyTitle = makeText(
+    KeyFrame,
+    "MARU HUB",
+    25,
+    Color.Text
+)
 
-	return corner
-end
+KeyTitle.Position = UDim2.fromOffset(25, 22)
+KeyTitle.Size = UDim2.new(1, -50, 0, 35)
 
-local function GetRoot(model)
-	if not model then
-		return nil
-	end
+local KeySubtitle = makeText(
+    KeyFrame,
+    "Enter your access key",
+    13,
+    Color.SubText
+)
 
-	return model:FindFirstChild("HumanoidRootPart")
-end
+KeySubtitle.Position = UDim2.fromOffset(26, 58)
+KeySubtitle.Size = UDim2.new(1, -52, 0, 25)
 
-local function GetHumanoid(model)
-	if not model then
-		return nil
-	end
+local KeyBox = Instance.new("TextBox")
+KeyBox.Name = "KeyBox"
+KeyBox.Position = UDim2.fromOffset(25, 95)
+KeyBox.Size = UDim2.new(1, -50, 0, 45)
+KeyBox.BackgroundColor3 = Color.Card
+KeyBox.TextColor3 = Color.Text
+KeyBox.PlaceholderColor3 = Color.SubText
+KeyBox.PlaceholderText = "Enter key..."
+KeyBox.Text = ""
+KeyBox.TextSize = 14
+KeyBox.Font = Enum.Font.Gotham
+KeyBox.ClearTextOnFocus = false
+KeyBox.Parent = KeyFrame
 
-	return model:FindFirstChildOfClass("Humanoid")
-end
+corner(KeyBox, 9)
+stroke(KeyBox, Color.Off, 0.15)
 
-local function IsAlive(model)
-	local humanoid = GetHumanoid(model)
+local CheckButton = Instance.new("TextButton")
+CheckButton.Position = UDim2.fromOffset(25, 153)
+CheckButton.Size = UDim2.new(1, -50, 0, 43)
+CheckButton.BackgroundColor3 = Color.Accent
+CheckButton.Text = "CHECK KEY"
+CheckButton.TextColor3 = Color.Text
+CheckButton.TextSize = 14
+CheckButton.Font = Enum.Font.GothamBold
+CheckButton.AutoButtonColor = false
+CheckButton.Parent = KeyFrame
 
-	return humanoid ~= nil
-		and humanoid.Health > 0
-end
+corner(CheckButton, 9)
 
-local function GetEnemyFolder()
-	return workspace:FindFirstChild(Config.EnemyFolder)
-end
+local KeyStatus = makeText(
+    KeyFrame,
+    "Status: Waiting for key",
+    12,
+    Color.SubText
+)
 
---==================================================
--- MAIN FRAME
---==================================================
+KeyStatus.Position = UDim2.fromOffset(25, 205)
+KeyStatus.Size = UDim2.new(1, -50, 0, 22)
 
-local Main = New("Frame", {
-	Name = "Main",
-	Parent = Gui,
+CheckButton.MouseEnter:Connect(function()
+    tween(CheckButton, {
+        BackgroundColor3 = Color.Accent2
+    })
+end)
 
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
+CheckButton.MouseLeave:Connect(function()
+    tween(CheckButton, {
+        BackgroundColor3 = Color.Accent
+    })
+end)
 
-	Size = UDim2.new(0, 650, 0, 410),
+--========================================================--
+-- MAIN HUB
+--========================================================--
 
-	BackgroundColor3 =
-		Color3.fromRGB(10, 13, 20),
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.fromOffset(650, 410)
+Main.BackgroundColor3 = Color.Background
+Main.Visible = false
+Main.Parent = Gui
 
-	BorderSizePixel = 0,
-})
+corner(Main, 14)
+stroke(Main, Color.Accent, 0.3)
 
-Round(Main, 14)
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(70, 190, 255)
-MainStroke.Transparency = 0.55
-MainStroke.Thickness = 1
-MainStroke.Parent = Main
-
---==================================================
--- HEADER
---==================================================
-
-local Header = New("TextLabel", {
-	Name = "Header",
-	Parent = Main,
-
-	BackgroundTransparency = 1,
-
-	Position = UDim2.new(0, 18, 0, 12),
-	Size = UDim2.new(1, -36, 0, 30),
-
-	Font = Enum.Font.GothamBold,
-
-	Text = "MARU HUB",
-	TextSize = 20,
-
-	TextColor3 =
-		Color3.fromRGB(245, 248, 255),
-
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
-
---==================================================
+--========================================================--
 -- SIDEBAR
---==================================================
+--========================================================--
 
-local Sidebar = New("Frame", {
-	Name = "Sidebar",
-	Parent = Main,
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.fromOffset(155, 410)
+Sidebar.BackgroundColor3 = Color.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Main
 
-	Position = UDim2.new(0, 12, 0, 55),
-	Size = UDim2.new(0, 135, 1, -67),
+corner(Sidebar, 14)
 
-	BackgroundColor3 =
-		Color3.fromRGB(14, 18, 28),
+local Logo = makeText(
+    Sidebar,
+    "MARU",
+    23,
+    Color.Text
+)
 
-	BorderSizePixel = 0,
-})
+Logo.Position = UDim2.fromOffset(20, 20)
+Logo.Size = UDim2.new(1, -40, 0, 35)
 
-Round(Sidebar, 10)
+local LogoSub = makeText(
+    Sidebar,
+    "MOBILE HUB",
+    10,
+    Color.Accent2
+)
 
-local SidebarPadding = Instance.new("UIPadding")
-SidebarPadding.PaddingTop = UDim.new(0, 12)
-SidebarPadding.PaddingLeft = UDim.new(0, 8)
-SidebarPadding.PaddingRight = UDim.new(0, 8)
-SidebarPadding.Parent = Sidebar
+LogoSub.Position = UDim2.fromOffset(21, 50)
+LogoSub.Size = UDim2.new(1, -42, 0, 20)
 
-local SidebarLayout = Instance.new("UIListLayout")
-SidebarLayout.Padding = UDim.new(0, 7)
-SidebarLayout.HorizontalAlignment =
-	Enum.HorizontalAlignment.Center
-SidebarLayout.Parent = Sidebar
+local Tabs = {}
 
---==================================================
--- CONTENT
---==================================================
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Position = UDim2.fromOffset(155, 0)
+Content.Size = UDim2.new(1, -155, 1, 0)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
-local Content = New("Frame", {
-	Name = "Content",
-	Parent = Main,
+local function createTab(name, order)
+    local Button = Instance.new("TextButton")
 
-	Position = UDim2.new(0, 157, 0, 55),
-	Size = UDim2.new(1, -169, 1, -67),
+    Button.Name = name
+    Button.Position = UDim2.fromOffset(12, 80 + ((order - 1) * 45))
+    Button.Size = UDim2.new(1, -24, 0, 38)
+    Button.BackgroundColor3 = Color.Sidebar
+    Button.Text = name
+    Button.TextColor3 = Color.SubText
+    Button.TextSize = 13
+    Button.Font = Enum.Font.GothamMedium
+    Button.AutoButtonColor = false
+    Button.Parent = Sidebar
 
-	BackgroundColor3 =
-		Color3.fromRGB(14, 18, 28),
+    corner(Button, 8)
 
-	BorderSizePixel = 0,
-})
+    Tabs[name] = Button
 
-Round(Content, 10)
+    return Button
+end
 
---==================================================
--- PAGES
---==================================================
+createTab("Main", 1)
+createTab("Farm", 2)
+createTab("Player", 3)
+createTab("Visual", 4)
+createTab("Settings", 5)
+
+--========================================================--
+-- PAGE SYSTEM
+--========================================================--
 
 local Pages = {}
 
-local function CreatePage(name)
-	local page = New("Frame", {
-		Name = name,
-		Parent = Content,
+local function createPage(name)
+    local Page = Instance.new("Frame")
 
-		Size = UDim2.fromScale(1, 1),
+    Page.Name = name
+    Page.Size = UDim2.fromScale(1, 1)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+    Page.Parent = Content
 
-		BackgroundTransparency = 1,
-		Visible = false,
-	})
+    Pages[name] = Page
 
-	Pages[name] = page
-
-	return page
+    return Page
 end
 
-local MainPage = CreatePage("Main")
-local FarmPage = CreatePage("Farm")
-local PlayerPage = CreatePage("Player")
-local VisualPage = CreatePage("Visual")
-local SettingsPage = CreatePage("Settings")
+local function showPage(name)
+    for pageName, page in pairs(Pages) do
+        page.Visible = pageName == name
+    end
 
-local function PageTitle(parent, text)
-	return New("TextLabel", {
-		Parent = parent,
-
-		BackgroundTransparency = 1,
-
-		Position = UDim2.new(0, 12, 0, 10),
-		Size = UDim2.new(1, -24, 0, 30),
-
-		Font = Enum.Font.GothamBold,
-
-		Text = text,
-		TextSize = 18,
-
-		TextColor3 =
-			Color3.fromRGB(245, 248, 255),
-
-		TextXAlignment =
-			Enum.TextXAlignment.Left,
-	})
+    for tabName, tab in pairs(Tabs) do
+        if tabName == name then
+            tween(tab, {
+                BackgroundColor3 = Color.Accent,
+                TextColor3 = Color.Text
+            })
+        else
+            tween(tab, {
+                BackgroundColor3 = Color.Sidebar,
+                TextColor3 = Color.SubText
+            })
+        end
+    end
 end
 
-PageTitle(MainPage, "Dashboard")
-PageTitle(FarmPage, "Farm")
-PageTitle(PlayerPage, "Player")
-PageTitle(VisualPage, "Visual")
-PageTitle(SettingsPage, "Settings")
+--========================================================--
+-- CARD
+--========================================================--
 
---==================================================
--- DASHBOARD
---==================================================
+local function createCard(parent, y, title, description)
+    local Card = Instance.new("Frame")
 
-local Status = New("TextLabel", {
-	Parent = MainPage,
+    Card.Position = UDim2.fromOffset(20, y)
+    Card.Size = UDim2.new(1, -40, 0, 70)
+    Card.BackgroundColor3 = Color.Card
+    Card.Parent = parent
 
-	Position = UDim2.new(0, 12, 0, 55),
-	Size = UDim2.new(1, -24, 0, 45),
+    corner(Card, 10)
 
-	BackgroundColor3 =
-		Color3.fromRGB(19, 24, 36),
+    local Title = makeText(Card, title, 14, Color.Text)
+    Title.Position = UDim2.fromOffset(15, 12)
+    Title.Size = UDim2.new(1, -90, 0, 22)
 
-	BorderSizePixel = 0,
+    local Description = makeText(
+        Card,
+        description or "",
+        11,
+        Color.SubText
+    )
 
-	Font = Enum.Font.Gotham,
+    Description.Position = UDim2.fromOffset(15, 36)
+    Description.Size = UDim2.new(1, -90, 0, 20)
 
-	Text = "Maru Hub ready",
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(145, 155, 175),
-})
-
-Round(Status, 8)
-
---==================================================
--- FARM FUNCTIONS
---==================================================
-
-local function GetNearestEnemy(position)
-	local folder = GetEnemyFolder()
-
-	if not folder then
-		return nil
-	end
-
-	local nearest = nil
-	local nearestDistance = math.huge
-
-	for _, enemy in ipairs(folder:GetChildren()) do
-		if enemy:IsA("Model") and IsAlive(enemy) then
-			local root = GetRoot(enemy)
-
-			if root then
-				local distance =
-					(root.Position - position).Magnitude
-
-				if distance < nearestDistance then
-					nearest = enemy
-					nearestDistance = distance
-				end
-			end
-		end
-	end
-
-	return nearest
+    return Card
 end
 
-local function BringMobs()
-	if not State.BringMobs then
-		return
-	end
+--========================================================--
+-- TOGGLE
+--========================================================--
 
-	local character = Player.Character
-	local playerRoot = GetRoot(character)
+local function createToggle(parent, y, title, description, callback)
+    local Card = createCard(
+        parent,
+        y,
+        title,
+        description
+    )
 
-	if not playerRoot then
-		return
-	end
+    local Toggle = Instance.new("TextButton")
 
-	local folder = GetEnemyFolder()
+    Toggle.AnchorPoint = Vector2.new(1, 0.5)
+    Toggle.Position = UDim2.new(1, -15, 0.5, 0)
+    Toggle.Size = UDim2.fromOffset(45, 25)
+    Toggle.BackgroundColor3 = Color.Off
+    Toggle.Text = ""
+    Toggle.AutoButtonColor = false
+    Toggle.Parent = Card
 
-	if not folder then
-		return
-	end
+    corner(Toggle, 15)
 
-	local center = playerRoot.Position
-	local index = 0
+    local Dot = Instance.new("Frame")
+    Dot.Size = UDim2.fromOffset(19, 19)
+    Dot.Position = UDim2.fromOffset(3, 3)
+    Dot.BackgroundColor3 = Color.Text
+    Dot.Parent = Toggle
 
-	for _, enemy in ipairs(folder:GetChildren()) do
-		if enemy:IsA("Model") and IsAlive(enemy) then
-			local root = GetRoot(enemy)
+    corner(Dot, 20)
 
-			if root then
-				local distance =
-					(root.Position - center).Magnitude
+    local Enabled = false
 
-				if distance <= Config.BringDistance then
-					index += 1
+    local function update()
+        if Enabled then
+            tween(Toggle, {
+                BackgroundColor3 = Color.Accent
+            })
 
-					local angle =
-						math.rad((index - 1) * 45)
+            tween(Dot, {
+                Position = UDim2.new(1, -22, 0, 3)
+            })
+        else
+            tween(Toggle, {
+                BackgroundColor3 = Color.Off
+            })
 
-					local offset = Vector3.new(
-						math.cos(angle)
-							* Config.BringRadius,
+            tween(Dot, {
+                Position = UDim2.fromOffset(3, 3)
+            })
+        end
+    end
 
-						0,
+    Toggle.MouseButton1Click:Connect(function()
+        Enabled = not Enabled
+        update()
 
-						math.sin(angle)
-							* Config.BringRadius
-					)
+        callback(Enabled)
+    end)
 
-					root.CFrame =
-						CFrame.new(
-							center + offset,
-							center
-						)
-
-					root.AssemblyLinearVelocity =
-						Vector3.zero
-
-					root.AssemblyAngularVelocity =
-						Vector3.zero
-				end
-			end
-		end
-	end
+    return Toggle
 end
 
-local function AttackEnemy(enemy)
-	if not enemy or not IsAlive(enemy) then
-		return
-	end
+--========================================================--
+-- MAIN PAGE
+--========================================================--
 
-	local character = Player.Character
-	local playerRoot = GetRoot(character)
+local MainPage = createPage("Main")
 
-	local enemyRoot = GetRoot(enemy)
-	local enemyHumanoid = GetHumanoid(enemy)
-
-	if not playerRoot
-		or not enemyRoot
-		or not enemyHumanoid then
-		return
-	end
-
-	local distance =
-		(playerRoot.Position - enemyRoot.Position).Magnitude
-
-	if distance <= Config.AutoFarmDistance then
-		enemyHumanoid:TakeDamage(
-			Config.Damage
-		)
-	end
-end
-
-local function AutoFarmStep()
-	if not State.AutoFarm then
-		return
-	end
-
-	local character = Player.Character
-	local playerRoot = GetRoot(character)
-
-	if not playerRoot then
-		return
-	end
-
-	local enemy =
-		GetNearestEnemy(playerRoot.Position)
-
-	if not enemy then
-		return
-	end
-
-	local enemyRoot = GetRoot(enemy)
-
-	if not enemyRoot then
-		return
-	end
-
-	if not State.BringMobs then
-		playerRoot.CFrame =
-			CFrame.new(
-				enemyRoot.Position
-					+ Vector3.new(
-						0,
-						0,
-						Config.AutoFarmDistance
-					),
-
-				enemyRoot.Position
-			)
-	end
-
-	AttackEnemy(enemy)
-end
-
---==================================================
--- FARM LOOP
---==================================================
-
-local farmTimer = 0
-local bringTimer = 0
-
-Connections.FarmLoop =
-	RunService.Heartbeat:Connect(
-		function(deltaTime)
-
-			if State.Destroyed then
-				return
-			end
-
-			farmTimer += deltaTime
-			bringTimer += deltaTime
-
-			if farmTimer >= Config.FarmInterval then
-				farmTimer = 0
-				AutoFarmStep()
-			end
-
-			if bringTimer >= Config.BringInterval then
-				bringTimer = 0
-				BringMobs()
-			end
-		end
-	)
-
---==================================================
--- BUTTON FACTORIES
---==================================================
-
-local function CreateTab(text)
-	local button = New("TextButton", {
-		Parent = Sidebar,
-
-		Size = UDim2.new(1, 0, 0, 40),
-
-		BackgroundColor3 =
-			Color3.fromRGB(24, 30, 44),
-
-		BorderSizePixel = 0,
-
-		Font = Enum.Font.GothamMedium,
-
-		Text = text,
-		TextSize = 14,
-
-		TextColor3 =
-			Color3.fromRGB(200, 210, 225),
-
-		AutoButtonColor = true,
-	})
-
-	Round(button, 8)
-
-	return button
-end
-
-local function CreateToggle(parent, text, callback)
-	local button = New("TextButton", {
-		Parent = parent,
-
-		Size = UDim2.new(1, -24, 0, 45),
-
-		BackgroundColor3 =
-			Color3.fromRGB(24, 30, 44),
-
-		BorderSizePixel = 0,
-
-		Font = Enum.Font.GothamMedium,
-
-		Text = text .. ": OFF",
-
-		TextSize = 14,
-
-		TextColor3 =
-			Color3.fromRGB(245, 248, 255),
-
-		AutoButtonColor = true,
-	})
-
-	Round(button, 8)
-
-	local enabled = false
-
-	button.MouseButton1Click:Connect(
-		function()
-			enabled = not enabled
-
-			button.Text =
-				text ..
-				(enabled and ": ON" or ": OFF")
-
-			callback(enabled)
-		end
-	)
-
-	return button
-end
-
---==================================================
--- FARM PAGE UI
---==================================================
-
-local FarmPadding = Instance.new("UIPadding")
-FarmPadding.PaddingTop = UDim.new(0, 50)
-FarmPadding.PaddingLeft = UDim.new(0, 12)
-FarmPadding.PaddingRight = UDim.new(0, 12)
-FarmPadding.Parent = FarmPage
-
-local FarmLayout = Instance.new("UIListLayout")
-FarmLayout.Padding = UDim.new(0, 8)
-FarmLayout.Parent = FarmPage
-
-CreateToggle(
-	FarmPage,
-	"Auto Farm",
-	function(enabled)
-		State.AutoFarm = enabled
-
-		Player:SetAttribute(
-			"AutoFarm",
-			enabled
-		)
-
-		Status.Text =
-			"Auto Farm: "
-			.. (enabled and "ON" or "OFF")
-	end
+local MainTitle = makeText(
+    MainPage,
+    "Dashboard",
+    22,
+    Color.Text
 )
 
-CreateToggle(
-	FarmPage,
-	"Bring Mobs",
-	function(enabled)
-		State.BringMobs = enabled
+MainTitle.Position = UDim2.fromOffset(20, 20)
+MainTitle.Size = UDim2.new(1, -40, 0, 30)
 
-		Player:SetAttribute(
-			"BringMobs",
-			enabled
-		)
-	end
+local MainInfo = makeText(
+    MainPage,
+    "Maru Hub is ready.",
+    12,
+    Color.SubText
 )
 
---==================================================
+MainInfo.Position = UDim2.fromOffset(20, 52)
+MainInfo.Size = UDim2.new(1, -40, 0, 25)
+
+createCard(
+    MainPage,
+    90,
+    "Maru Hub",
+    "Mobile optimized interface"
+)
+
+createCard(
+    MainPage,
+    170,
+    "Key System",
+    "Access verified successfully"
+)
+
+--========================================================--
+-- FARM PAGE
+--========================================================--
+
+local FarmPage = createPage("Farm")
+
+local FarmTitle = makeText(
+    FarmPage,
+    "Farm",
+    22,
+    Color.Text
+)
+
+FarmTitle.Position = UDim2.fromOffset(20, 20)
+FarmTitle.Size = UDim2.new(1, -40, 0, 30)
+
+local FarmInfo = makeText(
+    FarmPage,
+    "Authorized game integration",
+    12,
+    Color.SubText
+)
+
+FarmInfo.Position = UDim2.fromOffset(20, 52)
+FarmInfo.Size = UDim2.new(1, -40, 0, 22)
+
+createToggle(
+    FarmPage,
+    85,
+    "Auto Farm",
+    "Farm controller",
+    function(value)
+        Config.AutoFarm = value
+    end
+)
+
+createToggle(
+    FarmPage,
+    165,
+    "Auto Attack",
+    "Combat controller",
+    function(value)
+        Config.AutoAttack = value
+    end
+)
+
+createToggle(
+    FarmPage,
+    245,
+    "Hide Attack Effects",
+    "Disable locally-created VFX",
+    function(value)
+        Config.HideEffects = value
+    end
+)
+
+--========================================================--
 -- PLAYER PAGE
---==================================================
+--========================================================--
 
-New("TextLabel", {
-	Parent = PlayerPage,
+local PlayerPage = createPage("Player")
 
-	Position = UDim2.new(0, 12, 0, 55),
-	Size = UDim2.new(1, -24, 0, 90),
-
-	BackgroundColor3 =
-		Color3.fromRGB(19, 24, 36),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.Gotham,
-
-	Text =
-		"Username: "
-		.. Player.Name
-		.. "\nUserId: "
-		.. tostring(Player.UserId),
-
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(245, 248, 255),
-
-	TextXAlignment =
-		Enum.TextXAlignment.Left,
-
-	TextYAlignment =
-		Enum.TextYAlignment.Center,
-})
-
-local PlayerInfo =
-	PlayerPage:FindFirstChildOfClass("TextLabel")
-
-if PlayerInfo then
-	Round(PlayerInfo, 8)
-end
-
---==================================================
--- VISUAL FUNCTIONS
---==================================================
-
-local function SetFullbright(enabled)
-	State.Fullbright = enabled
-
-	if enabled then
-		Lighting.Brightness = 2
-		Lighting.ClockTime = 14
-		Lighting.FogEnd = 100000
-		Lighting.GlobalShadows = false
-		Lighting.Ambient =
-			Color3.new(1, 1, 1)
-		Lighting.OutdoorAmbient =
-			Color3.new(1, 1, 1)
-	else
-		Lighting.Brightness =
-			OriginalLighting.Brightness
-
-		Lighting.ClockTime =
-			OriginalLighting.ClockTime
-
-		Lighting.FogEnd =
-			OriginalLighting.FogEnd
-
-		Lighting.GlobalShadows =
-			OriginalLighting.GlobalShadows
-
-		Lighting.Ambient =
-			OriginalLighting.Ambient
-
-		Lighting.OutdoorAmbient =
-			OriginalLighting.OutdoorAmbient
-	end
-end
-
-local function SetShadows(enabled)
-	State.DisableShadows = enabled
-
-	if enabled then
-		Lighting.GlobalShadows = false
-	else
-		Lighting.GlobalShadows =
-			OriginalLighting.GlobalShadows
-	end
-end
-
-local function SetLowGraphics(enabled)
-	State.LowGraphics = enabled
-
-	pcall(function()
-		if enabled then
-			settings().Rendering.QualityLevel =
-				Enum.QualityLevel.Level01
-		else
-			settings().Rendering.QualityLevel =
-				Enum.QualityLevel.Automatic
-		end
-	end)
-end
-
---==================================================
--- VISUAL PAGE UI
---==================================================
-
-local VisualPadding = Instance.new("UIPadding")
-VisualPadding.PaddingTop = UDim.new(0, 50)
-VisualPadding.PaddingLeft = UDim.new(0, 12)
-VisualPadding.PaddingRight = UDim.new(0, 12)
-VisualPadding.Parent = VisualPage
-
-local VisualLayout = Instance.new("UIListLayout")
-VisualLayout.Padding = UDim.new(0, 8)
-VisualLayout.Parent = VisualPage
-
-CreateToggle(
-	VisualPage,
-	"Fullbright",
-	SetFullbright
+local PlayerTitle = makeText(
+    PlayerPage,
+    "Player",
+    22,
+    Color.Text
 )
 
-CreateToggle(
-	VisualPage,
-	"Disable Shadows",
-	SetShadows
+PlayerTitle.Position = UDim2.fromOffset(20, 20)
+PlayerTitle.Size = UDim2.new(1, -40, 0, 30)
+
+createCard(
+    PlayerPage,
+    80,
+    "Username",
+    LocalPlayer.Name
 )
 
-CreateToggle(
-	VisualPage,
-	"Low Graphics",
-	SetLowGraphics
+createCard(
+    PlayerPage,
+    160,
+    "Display Name",
+    LocalPlayer.DisplayName
 )
 
---==================================================
--- SETTINGS
---==================================================
-
-local ResetButton = New("TextButton", {
-	Parent = SettingsPage,
-
-	Position = UDim2.new(0, 12, 0, 55),
-	Size = UDim2.new(1, -24, 0, 45),
-
-	BackgroundColor3 =
-		Color3.fromRGB(24, 30, 44),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.GothamMedium,
-
-	Text = "Reset Settings",
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(245, 248, 255),
-})
-
-Round(ResetButton)
-
-ResetButton.MouseButton1Click:Connect(
-	function()
-		State.AutoFarm = false
-		State.BringMobs = false
-
-		Player:SetAttribute(
-			"AutoFarm",
-			false
-		)
-
-		Player:SetAttribute(
-			"BringMobs",
-			false
-		)
-
-		SetFullbright(false)
-		SetShadows(false)
-		SetLowGraphics(false)
-
-		Status.Text = "Settings reset"
-	end
+createCard(
+    PlayerPage,
+    240,
+    "User ID",
+    tostring(LocalPlayer.UserId)
 )
 
---==================================================
--- TABS
---==================================================
+--========================================================--
+-- VISUAL PAGE
+--========================================================--
 
-local Tabs = {
-	Main = CreateTab("Main"),
-	Farm = CreateTab("Farm"),
-	Player = CreateTab("Player"),
-	Visual = CreateTab("Visual"),
-	Settings = CreateTab("Settings"),
+local VisualPage = createPage("Visual")
+
+local VisualTitle = makeText(
+    VisualPage,
+    "Visual",
+    22,
+    Color.Text
+)
+
+VisualTitle.Position = UDim2.fromOffset(20, 20)
+VisualTitle.Size = UDim2.new(1, -40, 0, 30)
+
+local OldLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient
 }
 
-local function ShowPage(name)
-	for pageName, page in pairs(Pages) do
-		page.Visible =
-			pageName == name
-	end
+createToggle(
+    VisualPage,
+    80,
+    "Fullbright",
+    "Improve scene visibility",
+    function(value)
+        Config.Fullbright = value
 
-	for tabName, button in pairs(Tabs) do
-		if tabName == name then
-			button.BackgroundColor3 =
-				Color3.fromRGB(40, 150, 255)
-		else
-			button.BackgroundColor3 =
-				Color3.fromRGB(24, 30, 44)
-		end
-	end
-end
+        if value then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.Ambient = Color3.new(1, 1, 1)
+            Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+        else
+            Lighting.Brightness = OldLighting.Brightness
+            Lighting.ClockTime = OldLighting.ClockTime
+            Lighting.FogEnd = OldLighting.FogEnd
+            Lighting.GlobalShadows = OldLighting.GlobalShadows
+            Lighting.Ambient = OldLighting.Ambient
+            Lighting.OutdoorAmbient = OldLighting.OutdoorAmbient
+        end
+    end
+)
+
+--========================================================--
+-- SETTINGS PAGE
+--========================================================--
+
+local SettingsPage = createPage("Settings")
+
+local SettingsTitle = makeText(
+    SettingsPage,
+    "Settings",
+    22,
+    Color.Text
+)
+
+SettingsTitle.Position = UDim2.fromOffset(20, 20)
+SettingsTitle.Size = UDim2.new(1, -40, 0, 30)
+
+createToggle(
+    SettingsPage,
+    80,
+    "Fix Lag",
+    "Reduce unnecessary local effects",
+    function(value)
+        Config.FixLag = value
+
+        if value then
+            -- Lightweight client-side settings only.
+            Lighting.GlobalShadows = false
+        else
+            if not Config.Fullbright then
+                Lighting.GlobalShadows =
+                    OldLighting.GlobalShadows
+            end
+        end
+    end
+)
+
+createToggle(
+    SettingsPage,
+    160,
+    "Hide Effects",
+    "Suppress locally-created visual effects",
+    function(value)
+        Config.HideEffects = value
+    end
+)
+
+--========================================================--
+-- TAB CONNECTIONS
+--========================================================--
 
 for name, button in pairs(Tabs) do
-	button.MouseButton1Click:Connect(
-		function()
-			ShowPage(name)
-		end
-	)
+    button.MouseButton1Click:Connect(function()
+        showPage(name)
+    end)
 end
 
-ShowPage("Main")
+showPage("Main")
 
---==================================================
--- OPEN BUTTON
---==================================================
+--========================================================--
+-- FLOATING OPEN BUTTON
+--========================================================--
 
-local OpenButton = New("TextButton", {
-	Name = "OpenButton",
-	Parent = Gui,
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "OpenButton"
+OpenButton.AnchorPoint = Vector2.new(0, 0)
+OpenButton.Position = UDim2.fromOffset(18, 180)
+OpenButton.Size = UDim2.fromOffset(48, 48)
+OpenButton.BackgroundColor3 = Color.Accent
+OpenButton.Text = "M"
+OpenButton.TextColor3 = Color.Text
+OpenButton.TextSize = 20
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.AutoButtonColor = false
+OpenButton.Visible = false
+OpenButton.Parent = Gui
 
-	AnchorPoint = Vector2.new(0, 0.5),
+corner(OpenButton, 50)
+stroke(OpenButton, Color.Accent2, 0.2)
 
-	Position =
-		UDim2.new(0, 18, 0.5, 0),
+OpenButton.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
 
-	Size =
-		UDim2.new(0, 52, 0, 52),
+--========================================================--
+-- RESPONSIVE MOBILE
+--========================================================--
 
-	BackgroundColor3 =
-		Color3.fromRGB(40, 150, 255),
+local function updateMobileSize()
+    local camera = workspace.CurrentCamera
 
-	BorderSizePixel = 0,
+    if not camera then
+        return
+    end
 
-	Text = "M",
+    local viewport = camera.ViewportSize
 
-	TextColor3 =
-		Color3.fromRGB(255, 255, 255),
+    if viewport.X < 600 then
+        Main.Size = UDim2.fromScale(0.92, 0.72)
+        Sidebar.Size = UDim2.new(0, 125, 1, 0)
+        Content.Position = UDim2.fromOffset(125, 0)
+        Content.Size = UDim2.new(1, -125, 1, 0)
 
-	TextSize = 20,
+        for _, tab in pairs(Tabs) do
+            tab.TextSize = 11
+        end
 
-	Font = Enum.Font.GothamBold,
+        KeyFrame.Size = UDim2.fromScale(0.88, 0.36)
+    else
+        Main.Size = UDim2.fromOffset(650, 410)
+        Sidebar.Size = UDim2.fromOffset(155, 410)
+        Content.Position = UDim2.fromOffset(155, 0)
+        Content.Size = UDim2.new(1, -155, 1, 0)
 
-	AutoButtonColor = true,
-})
-
-Round(OpenButton, 26)
-
-local OpenStroke = Instance.new("UIStroke")
-OpenStroke.Color =
-	Color3.fromRGB(70, 190, 255)
-OpenStroke.Transparency = 0.25
-OpenStroke.Thickness = 1.5
-OpenStroke.Parent = OpenButton
-
-OpenButton.MouseButton1Click:Connect(
-	function()
-		Main.Visible = not Main.Visible
-	end
-)
-
---==================================================
--- MOBILE SIZE
---==================================================
-
-local function UpdateMobileSize()
-	local camera = workspace.CurrentCamera
-
-	if not camera then
-		return
-	end
-
-	local viewport = camera.ViewportSize
-
-	if viewport.X < 600 then
-		Main.Size =
-			UDim2.fromScale(
-				Config.MobileWidth,
-				Config.MobileHeight
-			)
-	else
-		Main.Size =
-			UDim2.new(
-				0,
-				650,
-				0,
-				410
-			)
-	end
+        KeyFrame.Size = UDim2.fromOffset(390, 245)
+    end
 end
-
-UpdateMobileSize()
 
 if workspace.CurrentCamera then
-	Connections.Viewport =
-		workspace.CurrentCamera
-			:GetPropertyChangedSignal("ViewportSize")
-			:Connect(UpdateMobileSize)
+    workspace.CurrentCamera:GetPropertyChangedSignal(
+        "ViewportSize"
+    ):Connect(updateMobileSize)
 end
 
---==================================================
--- DRAG
---==================================================
+updateMobileSize()
 
-local Dragging = false
-local DragStart
-local StartPosition
+--========================================================--
+-- KEY CHECK
+--========================================================--
 
-Header.InputBegan:Connect(
-	function(input)
-		if input.UserInputType ==
-			Enum.UserInputType.MouseButton1
-			or input.UserInputType ==
-			Enum.UserInputType.Touch then
+local function unlockHub()
+    KeyStatus.Text = "Status: Key accepted"
+    KeyStatus.TextColor3 = Color.Green
 
-			Dragging = true
-			DragStart = input.Position
-			StartPosition = Main.Position
+    task.wait(0.25)
 
-			input.Changed:Connect(
-				function()
-					if input.UserInputState ==
-						Enum.UserInputState.End then
+    tween(KeyFrame, {
+        Position = UDim2.fromScale(0.5, 0.45)
+    }, 0.25)
 
-						Dragging = false
-					end
-				end
-			)
-		end
-	end
-)
+    task.wait(0.15)
 
-Connections.Drag =
-	UserInputService.InputChanged:Connect(
-		function(input)
-			if not Dragging then
-				return
-			end
-
-			if input.UserInputType ~=
-				Enum.UserInputType.MouseMovement
-				and input.UserInputType ~=
-				Enum.UserInputType.Touch then
-
-				return
-			end
-
-			local delta =
-				input.Position - DragStart
-
-			Main.Position =
-				UDim2.new(
-					StartPosition.X.Scale,
-					StartPosition.X.Offset + delta.X,
-
-					StartPosition.Y.Scale,
-					StartPosition.Y.Offset + delta.Y
-				)
-		end
-	)
-
---==================================================
--- CHARACTER
---==================================================
-
-Connections.Character =
-	Player.CharacterAdded:Connect(
-		function()
-			task.wait(0.5)
-
-			Player:SetAttribute(
-				"AutoFarm",
-				State.AutoFarm
-			)
-
-			Player:SetAttribute(
-				"BringMobs",
-				State.BringMobs
-			)
-		end
-	)
-
---==================================================
--- CLEANUP
---==================================================
-
-local function Cleanup()
-	if State.Destroyed then
-		return
-	end
-
-	State.Destroyed = true
-
-	for name, connection in pairs(Connections) do
-		if connection then
-			connection:Disconnect()
-		end
-
-		Connections[name] = nil
-	end
-
-	SetFullbright(false)
-	SetShadows(false)
-	SetLowGraphics(false)
-
-	if Gui then
-		Gui:Destroy()
-	end
+    KeyFrame.Visible = false
+    Main.Visible = true
+    OpenButton.Visible = true
 end
 
---==================================================
+local checking = false
+
+CheckButton.MouseButton1Click:Connect(function()
+    if checking then
+        return
+    end
+
+    checking = true
+
+    local entered = KeyBox.Text
+
+    if entered == TEST_KEY then
+        unlockHub()
+    else
+        KeyStatus.Text = "Status: Invalid key"
+        KeyStatus.TextColor3 = Color.Red
+
+        tween(KeyFrame, {
+            Position = UDim2.fromScale(0.5, 0.505)
+        }, 0.08)
+
+        task.wait(0.08)
+
+        tween(KeyFrame, {
+            Position = UDim2.fromScale(0.5, 0.5)
+        }, 0.08)
+    end
+
+    task.wait(0.2)
+    checking = false
+end)
+
+KeyBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        CheckButton:Activate()
+    end
+end)
+
+--========================================================--
+-- CHARACTER RESET
+--========================================================--
+
+LocalPlayer.CharacterAdded:Connect(function()
+    Config.AutoFarm = false
+    Config.AutoAttack = false
+end)
+
+--========================================================--
 -- INITIAL STATE
---==================================================
+--========================================================--
 
-Player:SetAttribute("AutoFarm", false)
-Player:SetAttribute("BringMobs", false)
+Main.Visible = false
+OpenButton.Visible = false
+KeyFrame.Visible = true
 
-Status.Text = "Maru Hub loaded successfully"
+print("[Maru Hub] Loaded successfully.")
