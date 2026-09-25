@@ -1,41 +1,33 @@
---[[
-    MARU HUB
-    Clean Auto Farm System
-    For Roblox experiences owned/authorized by you
+--==================================================
+-- MARU HUB
+-- Clean Mobile UI + Auto Farm + Bring Mobs
+-- For your own / authorized Roblox experience
+--==================================================
 
-    Features:
-      • Mobile-friendly UI
-      • Auto Farm
-      • Bring Mobs
-      • Fullbright
-      • Disable Shadows
-      • Low Graphics
-      • Clean enable/disable handling
-      • No executor-specific APIs
-]]
-
---// Services
+--// SERVICES
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
---// Player
-local LocalPlayer = Players.LocalPlayer
-
-if not LocalPlayer then
+--// PLAYER
+local Player = Players.LocalPlayer
+if not Player then
 	return
 end
 
---// Configuration
-local CONFIG = {
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--==================================================
+-- CONFIG
+--==================================================
+
+local Config = {
 	EnemyFolder = "Enemies",
 
 	AutoFarmDistance = 8,
 	BringDistance = 100,
-
 	BringRadius = 4,
-	BringHeight = 0,
 
 	Damage = 10,
 
@@ -46,7 +38,10 @@ local CONFIG = {
 	MobileHeight = 0.72,
 }
 
---// State
+--==================================================
+-- STATE
+--==================================================
+
 local State = {
 	AutoFarm = false,
 	BringMobs = false,
@@ -56,10 +51,12 @@ local State = {
 	Destroyed = false,
 }
 
---// Connections
 local Connections = {}
 
---// Original lighting values
+--==================================================
+-- ORIGINAL LIGHTING
+--==================================================
+
 local OriginalLighting = {
 	Brightness = Lighting.Brightness,
 	ClockTime = Lighting.ClockTime,
@@ -70,23 +67,50 @@ local OriginalLighting = {
 }
 
 --==================================================
--- Utility
+-- CLEAN OLD GUI
 --==================================================
 
-local function disconnect(name)
-	local connection = Connections[name]
+local OldGui = PlayerGui:FindFirstChild("MaruHub")
 
-	if connection then
-		connection:Disconnect()
-		Connections[name] = nil
+if OldGui then
+	OldGui:Destroy()
+end
+
+--==================================================
+-- GUI
+--==================================================
+
+local Gui = Instance.new("ScreenGui")
+
+Gui.Name = "MaruHub"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
+
+--==================================================
+-- HELPERS
+--==================================================
+
+local function New(className, properties)
+	local object = Instance.new(className)
+
+	for property, value in pairs(properties) do
+		object[property] = value
 	end
+
+	return object
 end
 
-local function getCharacter()
-	return LocalPlayer.Character
+local function Round(parent, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = parent
+
+	return corner
 end
 
-local function getRoot(model)
+local function GetRoot(model)
 	if not model then
 		return nil
 	end
@@ -94,7 +118,7 @@ local function getRoot(model)
 	return model:FindFirstChild("HumanoidRootPart")
 end
 
-local function getHumanoid(model)
+local function GetHumanoid(model)
 	if not model then
 		return nil
 	end
@@ -102,23 +126,206 @@ local function getHumanoid(model)
 	return model:FindFirstChildOfClass("Humanoid")
 end
 
-local function isAlive(model)
-	local humanoid = getHumanoid(model)
+local function IsAlive(model)
+	local humanoid = GetHumanoid(model)
 
 	return humanoid ~= nil
 		and humanoid.Health > 0
 end
 
-local function getEnemyFolder()
-	return workspace:FindFirstChild(CONFIG.EnemyFolder)
+local function GetEnemyFolder()
+	return workspace:FindFirstChild(Config.EnemyFolder)
 end
 
 --==================================================
--- Enemy Selection
+-- MAIN FRAME
 --==================================================
 
-local function getNearestEnemy(position)
-	local folder = getEnemyFolder()
+local Main = New("Frame", {
+	Name = "Main",
+	Parent = Gui,
+
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+
+	Size = UDim2.new(0, 650, 0, 410),
+
+	BackgroundColor3 =
+		Color3.fromRGB(10, 13, 20),
+
+	BorderSizePixel = 0,
+})
+
+Round(Main, 14)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(70, 190, 255)
+MainStroke.Transparency = 0.55
+MainStroke.Thickness = 1
+MainStroke.Parent = Main
+
+--==================================================
+-- HEADER
+--==================================================
+
+local Header = New("TextLabel", {
+	Name = "Header",
+	Parent = Main,
+
+	BackgroundTransparency = 1,
+
+	Position = UDim2.new(0, 18, 0, 12),
+	Size = UDim2.new(1, -36, 0, 30),
+
+	Font = Enum.Font.GothamBold,
+
+	Text = "MARU HUB",
+	TextSize = 20,
+
+	TextColor3 =
+		Color3.fromRGB(245, 248, 255),
+
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+
+--==================================================
+-- SIDEBAR
+--==================================================
+
+local Sidebar = New("Frame", {
+	Name = "Sidebar",
+	Parent = Main,
+
+	Position = UDim2.new(0, 12, 0, 55),
+	Size = UDim2.new(0, 135, 1, -67),
+
+	BackgroundColor3 =
+		Color3.fromRGB(14, 18, 28),
+
+	BorderSizePixel = 0,
+})
+
+Round(Sidebar, 10)
+
+local SidebarPadding = Instance.new("UIPadding")
+SidebarPadding.PaddingTop = UDim.new(0, 12)
+SidebarPadding.PaddingLeft = UDim.new(0, 8)
+SidebarPadding.PaddingRight = UDim.new(0, 8)
+SidebarPadding.Parent = Sidebar
+
+local SidebarLayout = Instance.new("UIListLayout")
+SidebarLayout.Padding = UDim.new(0, 7)
+SidebarLayout.HorizontalAlignment =
+	Enum.HorizontalAlignment.Center
+SidebarLayout.Parent = Sidebar
+
+--==================================================
+-- CONTENT
+--==================================================
+
+local Content = New("Frame", {
+	Name = "Content",
+	Parent = Main,
+
+	Position = UDim2.new(0, 157, 0, 55),
+	Size = UDim2.new(1, -169, 1, -67),
+
+	BackgroundColor3 =
+		Color3.fromRGB(14, 18, 28),
+
+	BorderSizePixel = 0,
+})
+
+Round(Content, 10)
+
+--==================================================
+-- PAGES
+--==================================================
+
+local Pages = {}
+
+local function CreatePage(name)
+	local page = New("Frame", {
+		Name = name,
+		Parent = Content,
+
+		Size = UDim2.fromScale(1, 1),
+
+		BackgroundTransparency = 1,
+		Visible = false,
+	})
+
+	Pages[name] = page
+
+	return page
+end
+
+local MainPage = CreatePage("Main")
+local FarmPage = CreatePage("Farm")
+local PlayerPage = CreatePage("Player")
+local VisualPage = CreatePage("Visual")
+local SettingsPage = CreatePage("Settings")
+
+local function PageTitle(parent, text)
+	return New("TextLabel", {
+		Parent = parent,
+
+		BackgroundTransparency = 1,
+
+		Position = UDim2.new(0, 12, 0, 10),
+		Size = UDim2.new(1, -24, 0, 30),
+
+		Font = Enum.Font.GothamBold,
+
+		Text = text,
+		TextSize = 18,
+
+		TextColor3 =
+			Color3.fromRGB(245, 248, 255),
+
+		TextXAlignment =
+			Enum.TextXAlignment.Left,
+	})
+end
+
+PageTitle(MainPage, "Dashboard")
+PageTitle(FarmPage, "Farm")
+PageTitle(PlayerPage, "Player")
+PageTitle(VisualPage, "Visual")
+PageTitle(SettingsPage, "Settings")
+
+--==================================================
+-- DASHBOARD
+--==================================================
+
+local Status = New("TextLabel", {
+	Parent = MainPage,
+
+	Position = UDim2.new(0, 12, 0, 55),
+	Size = UDim2.new(1, -24, 0, 45),
+
+	BackgroundColor3 =
+		Color3.fromRGB(19, 24, 36),
+
+	BorderSizePixel = 0,
+
+	Font = Enum.Font.Gotham,
+
+	Text = "Maru Hub ready",
+	TextSize = 14,
+
+	TextColor3 =
+		Color3.fromRGB(145, 155, 175),
+})
+
+Round(Status, 8)
+
+--==================================================
+-- FARM FUNCTIONS
+--==================================================
+
+local function GetNearestEnemy(position)
+	local folder = GetEnemyFolder()
 
 	if not folder then
 		return nil
@@ -128,15 +335,16 @@ local function getNearestEnemy(position)
 	local nearestDistance = math.huge
 
 	for _, enemy in ipairs(folder:GetChildren()) do
-		if enemy:IsA("Model") and isAlive(enemy) then
-			local root = getRoot(enemy)
+		if enemy:IsA("Model") and IsAlive(enemy) then
+			local root = GetRoot(enemy)
 
 			if root then
-				local distance = (root.Position - position).Magnitude
+				local distance =
+					(root.Position - position).Magnitude
 
 				if distance < nearestDistance then
-					nearestDistance = distance
 					nearest = enemy
+					nearestDistance = distance
 				end
 			end
 		end
@@ -145,23 +353,19 @@ local function getNearestEnemy(position)
 	return nearest
 end
 
---==================================================
--- Bring Mobs
---==================================================
-
-local function bringMobs()
+local function BringMobs()
 	if not State.BringMobs then
 		return
 	end
 
-	local character = getCharacter()
-	local playerRoot = getRoot(character)
+	local character = Player.Character
+	local playerRoot = GetRoot(character)
 
 	if not playerRoot then
 		return
 	end
 
-	local folder = getEnemyFolder()
+	local folder = GetEnemyFolder()
 
 	if not folder then
 		return
@@ -171,26 +375,27 @@ local function bringMobs()
 	local index = 0
 
 	for _, enemy in ipairs(folder:GetChildren()) do
-		if enemy:IsA("Model") and isAlive(enemy) then
-			local root = getRoot(enemy)
+		if enemy:IsA("Model") and IsAlive(enemy) then
+			local root = GetRoot(enemy)
 
 			if root then
 				local distance =
 					(root.Position - center).Magnitude
 
-				if distance <= CONFIG.BringDistance then
+				if distance <= Config.BringDistance then
 					index += 1
 
 					local angle =
 						math.rad((index - 1) * 45)
 
-					local radius =
-						CONFIG.BringRadius
-
 					local offset = Vector3.new(
-						math.cos(angle) * radius,
-						CONFIG.BringHeight,
-						math.sin(angle) * radius
+						math.cos(angle)
+							* Config.BringRadius,
+
+						0,
+
+						math.sin(angle)
+							* Config.BringRadius
 					)
 
 					root.CFrame =
@@ -210,20 +415,16 @@ local function bringMobs()
 	end
 end
 
---==================================================
--- Auto Farm
---==================================================
-
-local function attackEnemy(enemy)
-	if not enemy or not isAlive(enemy) then
+local function AttackEnemy(enemy)
+	if not enemy or not IsAlive(enemy) then
 		return
 	end
 
-	local character = getCharacter()
-	local playerRoot = getRoot(character)
+	local character = Player.Character
+	local playerRoot = GetRoot(character)
 
-	local enemyRoot = getRoot(enemy)
-	local enemyHumanoid = getHumanoid(enemy)
+	local enemyRoot = GetRoot(enemy)
+	local enemyHumanoid = GetHumanoid(enemy)
 
 	if not playerRoot
 		or not enemyRoot
@@ -234,32 +435,33 @@ local function attackEnemy(enemy)
 	local distance =
 		(playerRoot.Position - enemyRoot.Position).Magnitude
 
-	if distance > CONFIG.AutoFarmDistance then
-		return
+	if distance <= Config.AutoFarmDistance then
+		enemyHumanoid:TakeDamage(
+			Config.Damage
+		)
 	end
-
-	enemyHumanoid:TakeDamage(CONFIG.Damage)
 end
 
-local function autoFarmStep()
+local function AutoFarmStep()
 	if not State.AutoFarm then
 		return
 	end
 
-	local character = getCharacter()
-	local playerRoot = getRoot(character)
+	local character = Player.Character
+	local playerRoot = GetRoot(character)
 
 	if not playerRoot then
 		return
 	end
 
-	local enemy = getNearestEnemy(playerRoot.Position)
+	local enemy =
+		GetNearestEnemy(playerRoot.Position)
 
 	if not enemy then
 		return
 	end
 
-	local enemyRoot = getRoot(enemy)
+	local enemyRoot = GetRoot(enemy)
 
 	if not enemyRoot then
 		return
@@ -272,48 +474,210 @@ local function autoFarmStep()
 					+ Vector3.new(
 						0,
 						0,
-						CONFIG.AutoFarmDistance
+						Config.AutoFarmDistance
 					),
+
 				enemyRoot.Position
 			)
 	end
 
-	attackEnemy(enemy)
+	AttackEnemy(enemy)
 end
 
 --==================================================
--- Farm Loop
+-- FARM LOOP
 --==================================================
 
-local farmAccumulator = 0
-local bringAccumulator = 0
+local farmTimer = 0
+local bringTimer = 0
 
-Connections.FarmLoop = RunService.Heartbeat:Connect(
-	function(deltaTime)
-		if State.Destroyed then
-			return
+Connections.FarmLoop =
+	RunService.Heartbeat:Connect(
+		function(deltaTime)
+
+			if State.Destroyed then
+				return
+			end
+
+			farmTimer += deltaTime
+			bringTimer += deltaTime
+
+			if farmTimer >= Config.FarmInterval then
+				farmTimer = 0
+				AutoFarmStep()
+			end
+
+			if bringTimer >= Config.BringInterval then
+				bringTimer = 0
+				BringMobs()
+			end
 		end
+	)
 
-		farmAccumulator += deltaTime
-		bringAccumulator += deltaTime
+--==================================================
+-- BUTTON FACTORIES
+--==================================================
 
-		if farmAccumulator >= CONFIG.FarmInterval then
-			farmAccumulator = 0
-			autoFarmStep()
+local function CreateTab(text)
+	local button = New("TextButton", {
+		Parent = Sidebar,
+
+		Size = UDim2.new(1, 0, 0, 40),
+
+		BackgroundColor3 =
+			Color3.fromRGB(24, 30, 44),
+
+		BorderSizePixel = 0,
+
+		Font = Enum.Font.GothamMedium,
+
+		Text = text,
+		TextSize = 14,
+
+		TextColor3 =
+			Color3.fromRGB(200, 210, 225),
+
+		AutoButtonColor = true,
+	})
+
+	Round(button, 8)
+
+	return button
+end
+
+local function CreateToggle(parent, text, callback)
+	local button = New("TextButton", {
+		Parent = parent,
+
+		Size = UDim2.new(1, -24, 0, 45),
+
+		BackgroundColor3 =
+			Color3.fromRGB(24, 30, 44),
+
+		BorderSizePixel = 0,
+
+		Font = Enum.Font.GothamMedium,
+
+		Text = text .. ": OFF",
+
+		TextSize = 14,
+
+		TextColor3 =
+			Color3.fromRGB(245, 248, 255),
+
+		AutoButtonColor = true,
+	})
+
+	Round(button, 8)
+
+	local enabled = false
+
+	button.MouseButton1Click:Connect(
+		function()
+			enabled = not enabled
+
+			button.Text =
+				text ..
+				(enabled and ": ON" or ": OFF")
+
+			callback(enabled)
 		end
+	)
 
-		if bringAccumulator >= CONFIG.BringInterval then
-			bringAccumulator = 0
-			bringMobs()
-		end
+	return button
+end
+
+--==================================================
+-- FARM PAGE UI
+--==================================================
+
+local FarmPadding = Instance.new("UIPadding")
+FarmPadding.PaddingTop = UDim.new(0, 50)
+FarmPadding.PaddingLeft = UDim.new(0, 12)
+FarmPadding.PaddingRight = UDim.new(0, 12)
+FarmPadding.Parent = FarmPage
+
+local FarmLayout = Instance.new("UIListLayout")
+FarmLayout.Padding = UDim.new(0, 8)
+FarmLayout.Parent = FarmPage
+
+CreateToggle(
+	FarmPage,
+	"Auto Farm",
+	function(enabled)
+		State.AutoFarm = enabled
+
+		Player:SetAttribute(
+			"AutoFarm",
+			enabled
+		)
+
+		Status.Text =
+			"Auto Farm: "
+			.. (enabled and "ON" or "OFF")
+	end
+)
+
+CreateToggle(
+	FarmPage,
+	"Bring Mobs",
+	function(enabled)
+		State.BringMobs = enabled
+
+		Player:SetAttribute(
+			"BringMobs",
+			enabled
+		)
 	end
 )
 
 --==================================================
--- Lighting
+-- PLAYER PAGE
 --==================================================
 
-local function applyFullbright(enabled)
+New("TextLabel", {
+	Parent = PlayerPage,
+
+	Position = UDim2.new(0, 12, 0, 55),
+	Size = UDim2.new(1, -24, 0, 90),
+
+	BackgroundColor3 =
+		Color3.fromRGB(19, 24, 36),
+
+	BorderSizePixel = 0,
+
+	Font = Enum.Font.Gotham,
+
+	Text =
+		"Username: "
+		.. Player.Name
+		.. "\nUserId: "
+		.. tostring(Player.UserId),
+
+	TextSize = 14,
+
+	TextColor3 =
+		Color3.fromRGB(245, 248, 255),
+
+	TextXAlignment =
+		Enum.TextXAlignment.Left,
+
+	TextYAlignment =
+		Enum.TextYAlignment.Center,
+})
+
+local PlayerInfo =
+	PlayerPage:FindFirstChildOfClass("TextLabel")
+
+if PlayerInfo then
+	Round(PlayerInfo, 8)
+end
+
+--==================================================
+-- VISUAL FUNCTIONS
+--==================================================
+
+local function SetFullbright(enabled)
 	State.Fullbright = enabled
 
 	if enabled then
@@ -321,8 +685,10 @@ local function applyFullbright(enabled)
 		Lighting.ClockTime = 14
 		Lighting.FogEnd = 100000
 		Lighting.GlobalShadows = false
-		Lighting.Ambient = Color3.new(1, 1, 1)
-		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+		Lighting.Ambient =
+			Color3.new(1, 1, 1)
+		Lighting.OutdoorAmbient =
+			Color3.new(1, 1, 1)
 	else
 		Lighting.Brightness =
 			OriginalLighting.Brightness
@@ -344,7 +710,7 @@ local function applyFullbright(enabled)
 	end
 end
 
-local function applyShadows(enabled)
+local function SetShadows(enabled)
 	State.DisableShadows = enabled
 
 	if enabled then
@@ -355,106 +721,193 @@ local function applyShadows(enabled)
 	end
 end
 
-local function applyLowGraphics(enabled)
+local function SetLowGraphics(enabled)
 	State.LowGraphics = enabled
 
-	if enabled then
-		pcall(function()
+	pcall(function()
+		if enabled then
 			settings().Rendering.QualityLevel =
 				Enum.QualityLevel.Level01
-		end)
-	else
-		pcall(function()
+		else
 			settings().Rendering.QualityLevel =
 				Enum.QualityLevel.Automatic
-		end)
-	end
+		end
+	end)
 end
 
 --==================================================
--- GUI
+-- VISUAL PAGE UI
 --==================================================
 
-local oldGui =
-	LocalPlayer:FindFirstChild("MaruHub")
+local VisualPadding = Instance.new("UIPadding")
+VisualPadding.PaddingTop = UDim.new(0, 50)
+VisualPadding.PaddingLeft = UDim.new(0, 12)
+VisualPadding.PaddingRight = UDim.new(0, 12)
+VisualPadding.Parent = VisualPage
 
-if oldGui then
-	oldGui:Destroy()
-end
+local VisualLayout = Instance.new("UIListLayout")
+VisualLayout.Padding = UDim.new(0, 8)
+VisualLayout.Parent = VisualPage
 
-local Gui = Instance.new("ScreenGui")
+CreateToggle(
+	VisualPage,
+	"Fullbright",
+	SetFullbright
+)
 
-Gui.Name = "MaruHub"
-Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = true
-Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+CreateToggle(
+	VisualPage,
+	"Disable Shadows",
+	SetShadows
+)
 
-local function create(className, properties)
-	local object = Instance.new(className)
-
-	for property, value in pairs(properties) do
-		object[property] = value
-	end
-
-	return object
-end
-
-local function corner(parent, radius)
-	local object = Instance.new("UICorner")
-	object.CornerRadius = UDim.new(0, radius)
-	object.Parent = parent
-	return object
-end
-
-local function stroke(parent, transparency)
-	local object = Instance.new("UIStroke")
-
-	object.Color = Color3.fromRGB(
-		70,
-		190,
-		255
-	)
-
-	object.Transparency = transparency or 0.7
-	object.Thickness = 1
-	object.Parent = parent
-
-	return object
-end
+CreateToggle(
+	VisualPage,
+	"Low Graphics",
+	SetLowGraphics
+)
 
 --==================================================
--- Main Window
+-- SETTINGS
 --==================================================
 
-local Main = create("Frame", {
-	Name = "Main",
-	Parent = Gui,
+local ResetButton = New("TextButton", {
+	Parent = SettingsPage,
 
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
-
-	Size = UDim2.new(
-		0,
-		650,
-		0,
-		410
-	),
+	Position = UDim2.new(0, 12, 0, 55),
+	Size = UDim2.new(1, -24, 0, 45),
 
 	BackgroundColor3 =
-		Color3.fromRGB(10, 13, 20),
+		Color3.fromRGB(24, 30, 44),
 
 	BorderSizePixel = 0,
+
+	Font = Enum.Font.GothamMedium,
+
+	Text = "Reset Settings",
+	TextSize = 14,
+
+	TextColor3 =
+		Color3.fromRGB(245, 248, 255),
 })
 
-corner(Main, 14)
-stroke(Main, 0.55)
+Round(ResetButton)
+
+ResetButton.MouseButton1Click:Connect(
+	function()
+		State.AutoFarm = false
+		State.BringMobs = false
+
+		Player:SetAttribute(
+			"AutoFarm",
+			false
+		)
+
+		Player:SetAttribute(
+			"BringMobs",
+			false
+		)
+
+		SetFullbright(false)
+		SetShadows(false)
+		SetLowGraphics(false)
+
+		Status.Text = "Settings reset"
+	end
+)
 
 --==================================================
--- Mobile Resize
+-- TABS
 --==================================================
 
-local function updateMobileSize()
+local Tabs = {
+	Main = CreateTab("Main"),
+	Farm = CreateTab("Farm"),
+	Player = CreateTab("Player"),
+	Visual = CreateTab("Visual"),
+	Settings = CreateTab("Settings"),
+}
+
+local function ShowPage(name)
+	for pageName, page in pairs(Pages) do
+		page.Visible =
+			pageName == name
+	end
+
+	for tabName, button in pairs(Tabs) do
+		if tabName == name then
+			button.BackgroundColor3 =
+				Color3.fromRGB(40, 150, 255)
+		else
+			button.BackgroundColor3 =
+				Color3.fromRGB(24, 30, 44)
+		end
+	end
+end
+
+for name, button in pairs(Tabs) do
+	button.MouseButton1Click:Connect(
+		function()
+			ShowPage(name)
+		end
+	)
+end
+
+ShowPage("Main")
+
+--==================================================
+-- OPEN BUTTON
+--==================================================
+
+local OpenButton = New("TextButton", {
+	Name = "OpenButton",
+	Parent = Gui,
+
+	AnchorPoint = Vector2.new(0, 0.5),
+
+	Position =
+		UDim2.new(0, 18, 0.5, 0),
+
+	Size =
+		UDim2.new(0, 52, 0, 52),
+
+	BackgroundColor3 =
+		Color3.fromRGB(40, 150, 255),
+
+	BorderSizePixel = 0,
+
+	Text = "M",
+
+	TextColor3 =
+		Color3.fromRGB(255, 255, 255),
+
+	TextSize = 20,
+
+	Font = Enum.Font.GothamBold,
+
+	AutoButtonColor = true,
+})
+
+Round(OpenButton, 26)
+
+local OpenStroke = Instance.new("UIStroke")
+OpenStroke.Color =
+	Color3.fromRGB(70, 190, 255)
+OpenStroke.Transparency = 0.25
+OpenStroke.Thickness = 1.5
+OpenStroke.Parent = OpenButton
+
+OpenButton.MouseButton1Click:Connect(
+	function()
+		Main.Visible = not Main.Visible
+	end
+)
+
+--==================================================
+-- MOBILE SIZE
+--==================================================
+
+local function UpdateMobileSize()
 	local camera = workspace.CurrentCamera
 
 	if not camera then
@@ -464,771 +917,38 @@ local function updateMobileSize()
 	local viewport = camera.ViewportSize
 
 	if viewport.X < 600 then
-		Main.Size = UDim2.fromScale(
-			CONFIG.MobileWidth,
-			CONFIG.MobileHeight
-		)
+		Main.Size =
+			UDim2.fromScale(
+				Config.MobileWidth,
+				Config.MobileHeight
+			)
 	else
-		Main.Size = UDim2.new(
-			0,
-			650,
-			0,
-			410
-		)
-	end
-end
-
-updateMobileSize()
-
-Connections.Viewport =
-	workspace.CurrentCamera:GetPropertyChangedSignal(
-		"ViewportSize"
-	):Connect(updateMobileSize)
-
---==================================================
--- Header
---==================================================
-
-local Header = create("TextLabel", {
-	Parent = Main,
-
-	BackgroundTransparency = 1,
-
-	Position = UDim2.new(
-		0,
-		18,
-		0,
-		12
-	),
-
-	Size = UDim2.new(
-		1,
-		-36,
-		0,
-		30
-	),
-
-	Font = Enum.Font.GothamBold,
-	Text = "MARU HUB",
-
-	TextSize = 20,
-
-	TextColor3 =
-		Color3.fromRGB(
-			245,
-			248,
-			255
-		),
-
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
-
---==================================================
--- Sidebar
---==================================================
-
-local Sidebar = create("Frame", {
-	Parent = Main,
-
-	Position = UDim2.new(
-		0,
-		12,
-		0,
-		55
-	),
-
-	Size = UDim2.new(
-		0,
-		135,
-		1,
-		-67
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			14,
-			18,
-			28
-		),
-
-	BorderSizePixel = 0,
-})
-
-corner(Sidebar, 10)
-
-local SidebarLayout =
-	create("UIListLayout", {
-		Parent = Sidebar,
-
-		Padding = UDim.new(
-			0,
-			7
-		),
-
-		HorizontalAlignment =
-			Enum.HorizontalAlignment.Center,
-
-		VerticalAlignment =
-			Enum.VerticalAlignment.Top,
-	})
-
-local SidebarPadding =
-	create("UIPadding", {
-		Parent = Sidebar,
-
-		PaddingTop = UDim.new(
-			0,
-			12
-		),
-	})
-
---==================================================
--- Content
---==================================================
-
-local Content = create("Frame", {
-	Parent = Main,
-
-	Position = UDim2.new(
-		0,
-		157,
-		0,
-		55
-	),
-
-	Size = UDim2.new(
-		1,
-		-169,
-		1,
-		-67
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			14,
-			18,
-			28
-		),
-
-	BorderSizePixel = 0,
-})
-
-corner(Content, 10)
-
---==================================================
--- Button Factory
---==================================================
-
-local function createTab(text)
-	local button = create("TextButton", {
-		Parent = Sidebar,
-
-		Size = UDim2.new(
-			1,
-			-16,
-			0,
-			40
-		),
-
-		BackgroundColor3 =
-			Color3.fromRGB(
-				24,
-				30,
-				44
-			),
-
-		BorderSizePixel = 0,
-
-		Font = Enum.Font.GothamMedium,
-
-		Text = text,
-
-		TextSize = 14,
-
-		TextColor3 =
-			Color3.fromRGB(
-				200,
-				210,
-				225
-			),
-
-		AutoButtonColor = true,
-	})
-
-	corner(button, 8)
-
-	return button
-end
-
-local function createToggle(parent, text, callback)
-	local button = create("TextButton", {
-		Parent = parent,
-
-		Size = UDim2.new(
-			1,
-			-24,
-			0,
-			45
-		),
-
-		BackgroundColor3 =
-			Color3.fromRGB(
-				24,
-				30,
-				44
-			),
-
-		BorderSizePixel = 0,
-
-		Font = Enum.Font.GothamMedium,
-
-		Text = text .. ": OFF",
-
-		TextSize = 14,
-
-		TextColor3 =
-			Color3.fromRGB(
-				245,
-				248,
-				255
-			),
-
-		AutoButtonColor = true,
-	})
-
-	corner(button, 8)
-
-	local enabled = false
-
-	button.MouseButton1Click:Connect(function()
-		enabled = not enabled
-
-		button.Text =
-			text ..
-			(enabled and ": ON" or ": OFF")
-
-		callback(enabled)
-	end)
-
-	return button
-end
-
---==================================================
--- Pages
---==================================================
-
-local Pages = {}
-
-local function createPage(name)
-	local page = create("Frame", {
-		Name = name,
-
-		Parent = Content,
-
-		Size = UDim2.fromScale(
-			1,
-			1
-		),
-
-		BackgroundTransparency = 1,
-
-		Visible = false,
-	})
-
-	Pages[name] = page
-
-	return page
-end
-
-local function pageTitle(parent, text)
-	return create("TextLabel", {
-		Parent = parent,
-
-		BackgroundTransparency = 1,
-
-		Position = UDim2.new(
-			0,
-			12,
-			0,
-			10
-		),
-
-		Size = UDim2.new(
-			1,
-			-24,
-			0,
-			30
-		),
-
-		Font = Enum.Font.GothamBold,
-
-		Text = text,
-
-		TextSize = 18,
-
-		TextColor3 =
-			Color3.fromRGB(
-				245,
-				248,
-				255
-			),
-
-		TextXAlignment =
-			Enum.TextXAlignment.Left,
-	})
-end
-
-local MainPage =
-	createPage("Main")
-
-local FarmPage =
-	createPage("Farm")
-
-local PlayerPage =
-	createPage("Player")
-
-local VisualPage =
-	createPage("Visual")
-
-local SettingsPage =
-	createPage("Settings")
-
---==================================================
--- Main Page
---==================================================
-
-pageTitle(
-	MainPage,
-	"Dashboard"
-)
-
-local Status = create("TextLabel", {
-	Parent = MainPage,
-
-	Position = UDim2.new(
-		0,
-		12,
-		0,
-		55
-	),
-
-	Size = UDim2.new(
-		1,
-		-24,
-		0,
-		40
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			19,
-			24,
-			36
-		),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.Gotham,
-
-	Text = "Maru Hub ready",
-
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(
-			145,
-			155,
-			175
-		),
-})
-
-corner(Status, 8)
-
---==================================================
--- Farm Page
---==================================================
-
-pageTitle(
-	FarmPage,
-	"Farm"
-)
-
-local FarmList =
-	create("UIListLayout", {
-		Parent = FarmPage,
-
-		Padding = UDim.new(
-			0,
-			8
-		),
-	})
-
-FarmList.HorizontalAlignment =
-	Enum.HorizontalAlignment.Center
-
-FarmList.VerticalAlignment =
-	Enum.VerticalAlignment.Top
-
-local FarmPadding =
-	create("UIPadding", {
-		Parent = FarmPage,
-
-		PaddingTop = UDim.new(
-			0,
-			50
-		),
-	})
-
-local AutoFarmButton =
-	createToggle(
-		FarmPage,
-		"Auto Farm",
-		function(enabled)
-			State.AutoFarm = enabled
-			LocalPlayer:SetAttribute(
-				"AutoFarm",
-				enabled
+		Main.Size =
+			UDim2.new(
+				0,
+				650,
+				0,
+				410
 			)
-
-			if enabled then
-				Status.Text =
-					"Auto Farm: ON"
-			else
-				Status.Text =
-					"Auto Farm: OFF"
-			end
-		end
-	)
-
-local BringButton =
-	createToggle(
-		FarmPage,
-		"Bring Mobs",
-		function(enabled)
-			State.BringMobs = enabled
-			LocalPlayer:SetAttribute(
-				"BringMobs",
-				enabled
-			)
-		end
-	)
-
---==================================================
--- Player Page
---==================================================
-
-pageTitle(
-	PlayerPage,
-	"Player"
-)
-
-local PlayerInfo = create("TextLabel", {
-	Parent = PlayerPage,
-
-	Position = UDim2.new(
-		0,
-		12,
-		0,
-		55
-	),
-
-	Size = UDim2.new(
-		1,
-		-24,
-		0,
-		90
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			19,
-			24,
-			36
-		),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.Gotham,
-
-	Text =
-		"Username: "
-		.. LocalPlayer.Name
-		.. "\nUserId: "
-		.. tostring(LocalPlayer.UserId),
-
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(
-			245,
-			248,
-			255
-		),
-
-	TextXAlignment =
-		Enum.TextXAlignment.Left,
-
-	TextYAlignment =
-		Enum.TextYAlignment.Center,
-})
-
-corner(PlayerInfo, 8)
-
---==================================================
--- Visual Page
---==================================================
-
-pageTitle(
-	VisualPage,
-	"Visual"
-)
-
-local VisualList =
-	create("UIListLayout", {
-		Parent = VisualPage,
-
-		Padding = UDim.new(
-			0,
-			8
-		),
-
-		HorizontalAlignment =
-			Enum.HorizontalAlignment.Center,
-	})
-
-create("UIPadding", {
-	Parent = VisualPage,
-
-	PaddingTop = UDim.new(
-		0,
-		50
-	),
-})
-
-createToggle(
-	VisualPage,
-	"Fullbright",
-	function(enabled)
-		applyFullbright(enabled)
-	end
-)
-
-createToggle(
-	VisualPage,
-	"Disable Shadows",
-	function(enabled)
-		applyShadows(enabled)
-	end
-)
-
-createToggle(
-	VisualPage,
-	"Low Graphics",
-	function(enabled)
-		applyLowGraphics(enabled)
-	end
-)
-
---==================================================
--- Settings Page
---==================================================
-
-pageTitle(
-	SettingsPage,
-	"Settings"
-)
-
-local ResetButton = create("TextButton", {
-	Parent = SettingsPage,
-
-	Position = UDim2.new(
-		0,
-		12,
-		0,
-		55
-	),
-
-	Size = UDim2.new(
-		1,
-		-24,
-		0,
-		45
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			24,
-			30,
-			44
-		),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.GothamMedium,
-
-	Text = "Reset Settings",
-
-	TextSize = 14,
-
-	TextColor3 =
-		Color3.fromRGB(
-			245,
-			248,
-			255
-		),
-})
-
-corner(ResetButton)
-
-ResetButton.MouseButton1Click:Connect(
-	function()
-		State.AutoFarm = false
-		State.BringMobs = false
-
-		LocalPlayer:SetAttribute(
-			"AutoFarm",
-			false
-		)
-
-		LocalPlayer:SetAttribute(
-			"BringMobs",
-			false
-		)
-
-		applyFullbright(false)
-		applyShadows(false)
-		applyLowGraphics(false)
-
-		Status.Text =
-			"Settings reset"
-	end
-)
-
---==================================================
--- Tabs
---==================================================
-
-local tabs = {
-	Main = createTab("Main"),
-	Farm = createTab("Farm"),
-	Player = createTab("Player"),
-	Visual = createTab("Visual"),
-	Settings = createTab("Settings"),
-}
-
-local function showPage(name)
-	for pageName, page in pairs(Pages) do
-		page.Visible = pageName == name
-	end
-
-	for tabName, button in pairs(tabs) do
-		if tabName == name then
-			button.BackgroundColor3 =
-				Color3.fromRGB(
-					40,
-					150,
-					255
-				)
-		else
-			button.BackgroundColor3 =
-				Color3.fromRGB(
-					24,
-					30,
-					44
-				)
-		end
 	end
 end
 
-for name, button in pairs(tabs) do
-	button.MouseButton1Click:Connect(
-		function()
-			showPage(name)
-		end
-	)
+UpdateMobileSize()
+
+if workspace.CurrentCamera then
+	Connections.Viewport =
+		workspace.CurrentCamera
+			:GetPropertyChangedSignal("ViewportSize")
+			:Connect(UpdateMobileSize)
 end
 
-showPage("Main")
-
 --==================================================
--- Floating Open Button
+-- DRAG
 --==================================================
 
-local OpenButton = create("TextButton", {
-	Parent = Gui,
-
-	AnchorPoint =
-		Vector2.new(
-			0,
-			0
-		),
-
-	Position = UDim2.new(
-		0,
-		18,
-		0,
-		180
-	),
-
-	Size = UDim2.new(
-		0,
-		52,
-		0,
-		52
-	),
-
-	BackgroundColor3 =
-		Color3.fromRGB(
-			40,
-			150,
-			255
-		),
-
-	BorderSizePixel = 0,
-
-	Font = Enum.Font.GothamBold,
-
-	Text = "M",
-
-	TextSize = 20,
-
-	TextColor3 =
-		Color3.fromRGB(
-			255,
-			255,
-			255
-		),
-})
-
-corner(OpenButton, 26)
-stroke(OpenButton, 0.35)
-
-OpenButton.MouseButton1Click:Connect(
-	function()
-		Main.Visible = not Main.Visible
-	end
-)
-
---==================================================
--- Dragging
---==================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-local function updateDrag(input)
-	local delta =
-		input.Position - dragStart
-
-	Main.Position =
-		UDim2.new(
-			startPosition.X.Scale,
-			startPosition.X.Offset + delta.X,
-			startPosition.Y.Scale,
-			startPosition.Y.Offset + delta.Y
-		)
-end
+local Dragging = false
+local DragStart
+local StartPosition
 
 Header.InputBegan:Connect(
 	function(input)
@@ -1237,16 +957,16 @@ Header.InputBegan:Connect(
 			or input.UserInputType ==
 			Enum.UserInputType.Touch then
 
-			dragging = true
-			dragStart = input.Position
-			startPosition = Main.Position
+			Dragging = true
+			DragStart = input.Position
+			StartPosition = Main.Position
 
 			input.Changed:Connect(
 				function()
 					if input.UserInputState ==
 						Enum.UserInputState.End then
 
-						dragging = false
+						Dragging = false
 					end
 				end
 			)
@@ -1254,51 +974,61 @@ Header.InputBegan:Connect(
 	end
 )
 
-UserInputService.InputChanged:Connect(
-	function(input)
-		if dragging
-			and (
-				input.UserInputType ==
-					Enum.UserInputType.MouseMovement
-				or input.UserInputType ==
-					Enum.UserInputType.Touch
-			) then
-
-			updateDrag(input)
-		end
-	end
-)
-
---==================================================
--- Character Handling
---==================================================
-
-Connections.Character =
-	LocalPlayer.CharacterAdded:Connect(
-		function()
-			task.wait(0.5)
-
-			if State.AutoFarm then
-				LocalPlayer:SetAttribute(
-					"AutoFarm",
-					true
-				)
+Connections.Drag =
+	UserInputService.InputChanged:Connect(
+		function(input)
+			if not Dragging then
+				return
 			end
 
-			if State.BringMobs then
-				LocalPlayer:SetAttribute(
-					"BringMobs",
-					true
-				)
+			if input.UserInputType ~=
+				Enum.UserInputType.MouseMovement
+				and input.UserInputType ~=
+				Enum.UserInputType.Touch then
+
+				return
 			end
+
+			local delta =
+				input.Position - DragStart
+
+			Main.Position =
+				UDim2.new(
+					StartPosition.X.Scale,
+					StartPosition.X.Offset + delta.X,
+
+					StartPosition.Y.Scale,
+					StartPosition.Y.Offset + delta.Y
+				)
 		end
 	)
 
 --==================================================
--- Cleanup
+-- CHARACTER
 --==================================================
 
-local function cleanup()
+Connections.Character =
+	Player.CharacterAdded:Connect(
+		function()
+			task.wait(0.5)
+
+			Player:SetAttribute(
+				"AutoFarm",
+				State.AutoFarm
+			)
+
+			Player:SetAttribute(
+				"BringMobs",
+				State.BringMobs
+			)
+		end
+	)
+
+--==================================================
+-- CLEANUP
+--==================================================
+
+local function Cleanup()
 	if State.Destroyed then
 		return
 	end
@@ -1313,5 +1043,20 @@ local function cleanup()
 		Connections[name] = nil
 	end
 
-	applyFullbright(false)
-	applyShadows(fa
+	SetFullbright(false)
+	SetShadows(false)
+	SetLowGraphics(false)
+
+	if Gui then
+		Gui:Destroy()
+	end
+end
+
+--==================================================
+-- INITIAL STATE
+--==================================================
+
+Player:SetAttribute("AutoFarm", false)
+Player:SetAttribute("BringMobs", false)
+
+Status.Text = "Maru Hub loaded successfully"
